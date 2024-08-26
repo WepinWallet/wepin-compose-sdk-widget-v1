@@ -1,58 +1,11 @@
-import com.multiplatform.webview.jsbridge.WKJsMessageHandler
-import com.multiplatform.webview.jsbridge.WebViewJsBridge
-import com.multiplatform.webview.jsbridge.rememberWebViewJsBridge
-import com.multiplatform.webview.web.IOSWebView
-import com.multiplatform.webview.web.WKNavigationDelegate
-import com.multiplatform.webview.web.WebViewNavigator
-import com.multiplatform.webview.web.addProgressObservers
-import com.multiplatform.webview.web.rememberWebViewNavigator
-import com.multiplatform.webview.web.rememberWebViewState
-import com.wepin.cm.widgetlib.storage.AppData
 import com.wepin.cm.widgetlib.webview.IOSJSMessageHandler
-import com.wepin.cm.widgetlib.webview.JSMessageHandler
-import com.wepin.cm.widgetlib.webview.JSResponseHandler
-import com.wepin.cm.widgetlib.webview.OpenInBrowserHandler
 import com.wepin.cm.widgetlib.webview.WebViewManager
-import com.wepin.cm.widgetlib.webview.initJsBridge
-import kotlinx.cinterop.COpaquePointer
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.ObjCClass
-import kotlinx.cinterop.allocArray
-import kotlinx.cinterop.memScoped
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
-import platform.CoreFoundation.CFErrorRefVar
-import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSBundle
-import platform.Foundation.NSSelectorFromString
+import platform.Foundation.NSError
 import platform.Foundation.NSURL
-import platform.Foundation.NSURLAuthenticationChallenge
-import platform.Foundation.NSURLCredential
-import platform.Foundation.NSURLRequest
-import platform.Foundation.NSURLSessionAuthChallengeCancelAuthenticationChallenge
-import platform.Foundation.NSURLSessionAuthChallengeDisposition
-import platform.Foundation.NSURLSessionAuthChallengeUseCredential
-import platform.Foundation.credentialForTrust
-import platform.Foundation.serverTrust
-import platform.SafariServices.SFSafariViewController
-import platform.Security.SecTrustCopyExceptions
-import platform.Security.SecTrustEvaluateWithError
-import platform.Security.SecTrustSetExceptions
-import platform.UIKit.UIApplication
-import platform.UIKit.UIBarButtonItem
-import platform.UIKit.UIBarButtonItemStyle
-import platform.UIKit.UIButton
-import platform.UIKit.UIButtonType
-import platform.UIKit.UIColor
-import platform.UIKit.UIControlEventTouchUpInside
-import platform.UIKit.UIControlState
-import platform.UIKit.UINavigationBar
-import platform.UIKit.UINavigationItem
-import platform.UIKit.UIScreen
-import platform.UIKit.UIView
+import platform.UIKit.UIEditMenuInteractionAnimatingProtocol
 import platform.UIKit.UIViewController
+import platform.WebKit.WKContextMenuElementInfo
 import platform.WebKit.WKNavigation
 import platform.WebKit.WKNavigationAction
 import platform.WebKit.WKNavigationDelegateProtocol
@@ -81,7 +34,7 @@ class WepinMainViewController(nibName: String?, bundle: NSBundle?) : UIViewContr
         }
     }
 
-    fun initJsBridge() {
+    private fun initJsBridge() {
         val initJs =
             """
             console.log("initJsBridge")
@@ -134,26 +87,8 @@ class WepinMainViewController(nibName: String?, bundle: NSBundle?) : UIViewContr
         return null
     }
 
-    override fun webView(
-        webView: WKWebView,
-        didFinishNavigation: WKNavigation?,
-    ) {
-        // JavaScript 평가: 페이지가 로드된 후에 실행
-        evaluateJavaScript(
-            """
-                    (function() {
-                        const queryString = window.location.search;
-                        const params = new URLSearchParams(queryString);
-                        params.set('from', 'composeMultiplatform');
-                        const newUrl = window.location.pathname + '?' + params.toString();
-                        console.log("newUrl11:", newUrl);
-                        window.history.pushState({}, '', newUrl);
-                    })();
-                """.trimIndent()
-        )
-    }
-
     //after recieve message from server
+    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
     override fun webView(
         webView: WKWebView,
         didCommitNavigation: WKNavigation?,
@@ -174,38 +109,33 @@ class WepinMainViewController(nibName: String?, bundle: NSBundle?) : UIViewContr
         )
     }
 
-//    @OptIn(ExperimentalForeignApi::class)
-//    override fun webView(
-//        webView: WKWebView,
-//        didReceiveAuthenticationChallenge: NSURLAuthenticationChallenge,
-//        completionHandler: (NSURLSessionAuthChallengeDisposition, NSURLCredential?) -> Unit
-//    ) {
-//        CoroutineScope(Dispatchers.Default).launch {
-//            val handled = memScoped {
-//                val serverTrust = didReceiveAuthenticationChallenge.protectionSpace.serverTrust
-//                val exceptions = SecTrustCopyExceptions(serverTrust)
-//                if (SecTrustSetExceptions(serverTrust, exceptions)) {
-//                    val errorRef = allocArray<CFErrorRefVar>(1)
-//                    if (SecTrustEvaluateWithError(serverTrust, errorRef)) {
-//                        val credential = NSURLCredential.credentialForTrust(serverTrust)
-//                        launch(Dispatchers.Main) {
-//                            completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
-//                        }
-//                        true
-//                    } else {
-//                        false
-//                    }
-//                } else {
-//                    false
-//                }
-//            }
-//            if (!handled) {
-//                launch(Dispatchers.Main) {
-//                    completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null)
-//                }
-//            }
-//        }
-//    }
+    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+    override fun webView(
+        webView: WKWebView,
+        contextMenuDidEndForElement: WKContextMenuElementInfo
+    ) {
+        // 이 메서드는 context menu가 종료되었을 때 호출됩니다.
+        // 여기에 특별히 처리할 내용이 없다면 빈 메서드로 둡니다.
+    }
+
+    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+    override fun webView(
+        webView: WKWebView,
+        willPresentEditMenuWithAnimator: UIEditMenuInteractionAnimatingProtocol
+    ) {
+        // 편집 메뉴가 나타날 때 호출되는 메서드
+        // 여기에 특별히 처리할 내용이 없다면 빈 메서드로 둡니다.
+    }
+
+    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+    override fun webView(
+        webView: WKWebView,
+        didFailProvisionalNavigation: WKNavigation?,
+        withError: NSError
+    ) {
+        // 네비게이션이 실패했을 때 호출되는 메서드
+        println("WebView navigation failed with error: ${withError.localizedDescription}")
+    }
 
     override fun viewWillAppear(animated: Boolean) {
         super.viewWillAppear(animated)
@@ -218,7 +148,7 @@ class WepinMainViewController(nibName: String?, bundle: NSBundle?) : UIViewContr
         }
     }
 
-    fun evaluateJavaScript(js: String) {
+    private fun evaluateJavaScript(js: String) {
         WebViewManager.getInstance()._webview!!.evaluateJavaScript(js, null)
     }
 }

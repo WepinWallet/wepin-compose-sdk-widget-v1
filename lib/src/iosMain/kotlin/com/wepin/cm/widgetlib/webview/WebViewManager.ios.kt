@@ -59,13 +59,13 @@ actual class WebViewManager() {
             _webview!!.removeFromSuperview()
             _webview!!.navigationDelegate = null
             _webview!!.setUIDelegate(null)
+            if (_safariVC != null) {
+                closeSafariVC()
+            }
             val keyWindow = UIApplication.sharedApplication.keyWindow
             val rootViewController = keyWindow?.rootViewController?.presentedViewController
             rootViewController?.dismissViewControllerAnimated(true, completion = null)
             viewController = null
-            if (_safariVC != null) {
-                closeSafariVC()
-            }
             _webview = null
         }
     }
@@ -75,11 +75,13 @@ actual class WebViewManager() {
     }
 
     actual fun destroyWebview(webview: NativeWebView) {
-        webview.stopLoading()
-        webview.removeFromSuperview()
-        webview.navigationDelegate = null
-        webview.setUIDelegate(null)
-        _webview = null
+        if (_webview != null) {
+            _webview!!.stopLoading()
+            _webview!!.removeFromSuperview()
+            _webview!!.navigationDelegate = null
+            _webview!!.setUIDelegate(null)
+            _webview = null
+        }
     }
 
     @OptIn(ExperimentalForeignApi::class)

@@ -106,7 +106,7 @@ data class JSResponse(
         }
 
         fun setType() = apply {
-            (response.body.data as? JSResponseBody.JSReadyToWidgetResponseBodyData)?.type = "compose-login"
+            (response.body.data as? JSResponseBody.JSReadyToWidgetResponseBodyData)?.type = "compose-widget"
         }
 
         fun setUserToken(token: String) = apply {

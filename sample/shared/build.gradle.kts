@@ -2,6 +2,7 @@ plugins {
     kotlin("multiplatform")
     id("com.android.library")
     id("org.jetbrains.compose")
+    kotlin("native.cocoapods")
 }
 
 kotlin {
@@ -17,6 +18,26 @@ kotlin {
             isStatic = true
         }
     }
+
+    cocoapods {
+        summary = "Some description for a Kotlin/Native module"
+        homepage = "Link to a Kotlin/Native module homepage"
+        ios.deploymentTarget = "13.0"
+        version = "0.0.1"
+
+        pod("AppAuth") {
+            version = "~> 1.7.5"
+        }
+
+        pod("secp256k1") {
+            version = "~> 0.1.0"
+        }
+
+        pod("JFBCrypt") {
+            version = "~> 0.1"
+        }
+    }
+
 
     sourceSets {
         val commonMain by getting {
