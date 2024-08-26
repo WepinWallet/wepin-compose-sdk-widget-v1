@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--Widget Background Color-->
+    <color name="bg_main">#F5F6F8</color>
+    <color name="transparent">#00000000</color>
+
+    <!--Key Color-->
+    <color name="theme01">#E1F5F3</color>
+    <color name="theme02">#B9F1EB</color>
+    <color name="theme03">#91E6E0</color>
+    <color name="theme04">#7BDBD4</color>
+    <color name="theme05">#5CD2C9</color>
+    <color name="theme06">#27C4B8</color>
+    <color name="theme07">#06AFA2</color>
+    <color name="theme08">#079186</color>
+    <color name="theme09">#057D73</color>
+    <color name="theme10">#00635B</color>
+
+    <!--Gray-->
+    <color name="white">#FFFFFF</color>
+    <color name="sc_gray01">#F5F5F5</color>
+    <color name="sc_gray02">#EEEEEE</color>
+    <color name="sc_gray03">#E0E0E0</color>
+    <color name="sc_gray04">#CCCCCC</color>
+    <color name="sc_gray05">#AAAAAA</color>
+    <color name="sc_gray06">#999999</color>
+    <color name="sc_gray07">#777777</color>
+    <color name="sc_gray08">#555555</color>
+    <color name="sc_gray09">#333333</color>
+    <color name="sc_gray10">#111111</color>
+
+    <!--Blue-->
+    <color name="sc_blue01">#E8EEFF</color>
+    <color name="sc_blue02">#C4D4FF</color>
+    <color name="sc_blue03">#92B0FF</color>
+    <color name="sc_blue04">#6991FE</color>
+    <color name="sc_blue05">#396EFF</color>
+    <color name="sc_blue06">#004CFF</color>
+    <color name="sc_blue07">#0043DF</color>
+    <color name="sc_blue08">#0038BC</color>
+    <color name="sc_blue09">#002988</color>
+    <color name="sc_blue10">#001C5D</color>
+
+    <!--Red-->
+    <color name="sc_red01">#FFD8DC</color>
+    <color name="sc_red02">#F9B0B5</color>
+    <color name="sc_red03">#FF4A58</color>
+    <color name="sc_red04">#E21323</color>
+    <color name="sc_red05">#B20613</color>
+    <color name="sc_red06">#6B0008</color>
+
+    <!--end-->
+
+</resources>
+
