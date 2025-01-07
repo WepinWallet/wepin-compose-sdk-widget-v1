@@ -1,8 +1,15 @@
 package com.wepin.cm.widgetlib.utils
 
+import com.wepin.cm.loginlib.storage.StorageManager
+import com.wepin.cm.loginlib.types.StorageDataType
 import com.wepin.cm.widgetlib.types.JSRegisterRequestParameter
 import com.wepin.cm.loginlib.types.WepinLoginStatus
+import com.wepin.cm.loginlib.utils.convertJsonToLocalStorageData
 import com.wepin.cm.widgetlib.types.Account
+import com.wepin.cm.widgetlib.types.JSGetLoginInfoRequestParameter
+import com.wepin.cm.widgetlib.types.JSPinAuthRequestParameter
+import com.wepin.cm.widgetlib.types.JSReceiveRequestParameter
+import com.wepin.cm.widgetlib.types.JSResponse
 import com.wepin.cm.widgetlib.types.JSSendRequestParameter
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -41,6 +48,15 @@ object AnySerializer: KSerializer<Any> {
                 put("to", JsonPrimitive(value.to))
                 put("value", JsonPrimitive(value.value))
             }
+            is JSReceiveRequestParameter -> buildJsonObject {
+                put("account", Json.encodeToJsonElement(Account.serializer(), value.account))
+            }
+            is JSPinAuthRequestParameter -> buildJsonObject {
+                put("count", JsonPrimitive(value.count))
+            }
+            is JSGetLoginInfoRequestParameter -> buildJsonObject {
+                put("provider", JsonPrimitive(value.provider))
+            }
             is Map<*, *> -> JsonObject(value.mapKeys { it.key.toString() }.mapValues { serializeValue(it.value) })
             else -> throw IllegalStateException("Unsupported type: ${value::class}")
         }
@@ -74,6 +90,15 @@ object AnySerializer: KSerializer<Any> {
                 put("to", JsonPrimitive(value.to))
                 put("value", JsonPrimitive(value.value))
             }
+            is JSReceiveRequestParameter -> buildJsonObject {
+                put("account", Json.encodeToJsonElement(Account.serializer(), value.account))
+            }
+            is JSPinAuthRequestParameter -> buildJsonObject {
+                put("count", JsonPrimitive(value.count))
+            }
+            is JSGetLoginInfoRequestParameter -> buildJsonObject {
+                put("provider", JsonPrimitive(value.provider))
+            }
             is Map<*, *> -> JsonObject(value.mapKeys { it.key.toString() }.mapValues { serializeValue(it.value) })
             else -> throw IllegalStateException("Unsupported type: ${value::class}")
         }
@@ -103,8 +128,54 @@ object AnySerializer: KSerializer<Any> {
                         to = element["to"]?.jsonPrimitive?.content ?: "",
                         value = element["value"]?.jsonPrimitive?.content ?: ""
                     )
+                } else if (element.containsKey("account")) {
+                    JSReceiveRequestParameter(
+                        account = Json.decodeFromJsonElement(Account.serializer(), element["account"]!!)
+                    )
+                } else if (element.containsKey("count")) {
+                    JSPinAuthRequestParameter(count = element["count"]?.jsonPrimitive?.int ?: 1)
+                } else if (element.containsKey("provider") && element.size == 1) {
+                    JSGetLoginInfoRequestParameter(provider = element["provider"]?.jsonPrimitive?.content ?: "")
                 } else {
-                    element.mapValues { deserializeValue(it.value) }
+                    if (element.containsKey("data")) {
+                        val value = element.get("data")
+                        if (value !== null) {
+                            deserializeValue(value)
+                        } else {
+                            element
+                        }
+                    }
+                    else {
+                        element.mapNotNull { (key, value) ->
+                            val json = Json {
+                                prettyPrint = true
+                                isLenient = true
+                                encodeDefaults = true
+                            }
+                            when (key) {
+                                "firebase:wepin" -> {
+                                    val data = json.decodeFromJsonElement<StorageDataType.FirebaseWepin>(value)
+                                    key to data
+                                }
+                                "wepin:connectUser" -> {
+                                    val data = json.decodeFromJsonElement<StorageDataType.WepinToken>(value)
+                                    key to data
+                                }
+                                "user_id" -> key to value.toString().replace("\"", "")
+                                "user_status" -> {
+                                    val data = json.decodeFromJsonElement<StorageDataType.UserStatus>(value)
+                                    key to data
+                                }
+                                "wallet_id" -> key to value.toString().replace("\"", "")
+                                "user_info" -> {
+                                    val data = json.decodeFromJsonElement<StorageDataType.UserInfo>(value)
+                                    key to data
+                                }
+                                "oauth_provider_pending" -> key to value.toString().replace("\"", "")
+                                else -> null
+                            }
+                        }.toMap()
+                    }
                 }
             }
             is JsonArray -> element.map { deserializeValue(it) }

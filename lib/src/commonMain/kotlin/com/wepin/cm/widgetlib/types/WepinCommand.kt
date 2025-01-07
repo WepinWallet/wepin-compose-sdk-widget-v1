@@ -69,5 +69,8 @@ interface Command {
         const val CMD_SET_USER_EMAIL = "set_user_email"
         const val CMD_WEPIN_REGISTER = "register_wepin"
         const val CMD_SEND_TRANSACTION_WITHOUT_PROVIDER = "send_transaction_without_provider"
+        const val CMD_RECEIVE_ACCOUNT = "receive_account"
+        const val CMD_PIN_AUTH = "pin_auth"
+        const val CMD_GET_LOGIN_INFO = "get_login_info"
     }
 }

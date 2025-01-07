@@ -3,6 +3,7 @@ package com.wepin.cm.widgetlib.storage
 import com.wepin.cm.loginlib.error.WepinError
 import com.wepin.cm.loginlib.types.KeyType
 import com.wepin.cm.widgetlib.const.WidgetUrl
+import com.wepin.cm.widgetlib.types.LoginProvider
 import com.wepin.cm.widgetlib.types.WidgetAttributes
 
 object AppData {
@@ -11,6 +12,8 @@ object AppData {
     private var _context: Any? = null
     private var _attributes: WidgetAttributes? = null
     private var _widgetUrl: String = ""
+    private var _specifiedEmail: String = ""
+    private var _providerList: Array<LoginProvider>? = null
 
     fun setAppId(value: String) {
         _appId = value
@@ -26,6 +29,13 @@ object AppData {
 
     fun setAttributes(value: WidgetAttributes) {
         _attributes = value
+    }
+    fun setLoginProviders(value: Array<LoginProvider>) {
+        _attributes?.loginProviders = value.map { providerInfo -> providerInfo.provider }.toTypedArray()
+        _providerList = value
+    }
+    fun setSpecifiedEmail(value: String) {
+        _specifiedEmail = value
     }
     fun setWidgetUrl(apiKey: String) {
         var keytype: String
@@ -65,7 +75,17 @@ object AppData {
         return _attributes
     }
 
+    fun getProviderList(providerName: String): LoginProvider? {
+        return _providerList?.find {
+            it.provider == providerName
+        }
+    }
+
     fun getWidgetURL(): String {
         return _widgetUrl
+    }
+
+    fun getEmail(): String {
+        return _specifiedEmail
     }
 }

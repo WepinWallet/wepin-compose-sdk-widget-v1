@@ -12,6 +12,8 @@ import com.wepin.cm.widgetlib.types.RegisterRequest
 import com.wepin.cm.widgetlib.types.RegisterResponse
 import com.wepin.cm.widgetlib.types.UpdateTermsAccepedResponse
 import com.wepin.cm.widgetlib.types.UpdateTermsAcceptedRequest
+import com.wepin.cm.widgetlib.types.VerifyPinRequest
+import com.wepin.cm.widgetlib.types.VerifyPinResponse
 import com.wepin.cm.widgetlib.utils.getDomain
 import com.wepin.cm.widgetlib.utils.getVersionMetaDataValue
 import io.ktor.client.HttpClient
@@ -113,6 +115,19 @@ class WepinNetworkManager() {
             if (response.status >= HttpStatusCode.OK && response.status < HttpStatusCode.MultipleChoices) {
                 val data: UpdateTermsAccepedResponse = response.body()
                 data
+            } else {
+                throw Exception("HTTP ${response.status.value}: ${response.bodyAsText()}")
+            }
+        }
+        return result
+    }
+
+    suspend fun verifyPin(accessToken: String, parameter: VerifyPinRequest): Boolean {
+        val result = withContext(Dispatchers.IO) {
+            val response: HttpResponse = wepinApiService!!.verifyPin(accessToken, parameter)
+            if (response.status >= HttpStatusCode.OK && response.status < HttpStatusCode.MultipleChoices) {
+                val data: VerifyPinResponse = response.body()
+                data.pinVerified
             } else {
                 throw Exception("HTTP ${response.status.value}: ${response.bodyAsText()}")
             }

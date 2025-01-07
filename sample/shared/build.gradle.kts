@@ -47,7 +47,8 @@ kotlin {
                 implementation(compose.material)
                 @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
                 implementation(compose.components.resources)
-                api("io.wepin:wepin-compose-sdk-widget-v1:0.0.1")
+                api("io.wepin:wepin-compose-sdk-widget-v1:0.0.3")
+                //api(project(":lib"))
             }
         }
         val androidMain by getting {

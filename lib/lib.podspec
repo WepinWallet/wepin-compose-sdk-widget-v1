@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
     spec.name                     = 'lib'
-    spec.version                  = '0.0.1'
+    spec.version                  = '0.0.3'
     spec.homepage                 = 'Link to a Kotlin/Native module homepage'
     spec.source                   = { :http=> ''}
     spec.authors                  = ''

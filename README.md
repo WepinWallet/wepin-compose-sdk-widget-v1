@@ -258,6 +258,11 @@ The `login` variable is a Wepin login library that includes various authenticati
 - `loginWithIdToken`
 - `loginWithAccessToken`
 - `getRefreshFirebaseToken`
+- `loginFirebaseWithOauthProvider`
+- `loginWepinWithOauthProvider`
+- `loginWepinWithEmailAndPassword`
+- `loginWepinWithIdToken`
+- `loginWepinWithAccessToken`
 - `loginWepin`
 - `getCurrentWepinUser`
 - `logout`
@@ -286,6 +291,56 @@ wepinWidgetSDK.login!!.logout
 
 For more details on each method and to see usage examples, please visit the official https://github.com/WepinWallet/wepin-compose-sdk-login-v1/blob/main/README.md
 
+### loginWithUI
+```kotlin
+suspend fun loginWithUI(parameter: LoginWithUIParameter): WepinUser?
+```
+
+The `loginWithUI` method provides the functionality to log in using a widget and returns the information of the logged-in user. If a user is already logged in, the widget will not be displayed, and the method will directely return the logged-in user's information. To perform a login without the widget, use the loginWepin() method from the login variable instead.
+
+> [!CAUTION]
+> This method can only be used after the authentication key has been deleted from the [Wepin Workspace](https://workspace.wepin.io/)
+>
+> (Wepin Workspace > Delvelopment Tools menu > Login tap > Auth Key > Delete)
+> The Auth Key menu is visible only if an authentication key was previously generated.
+ 
+## Supported Version
+Supported from version *`0.0.3* and later.
+
+#### Parameters
+- LoginWithUIParameter
+  - loginProviders \<Array<LoginProvider>> - An array of login providers to configure the widget. If an empty array is provided, only the email login function is available.
+    - provider \<String> - The OAuth login provider (e.g., 'google', 'discord', 'naver', 'apple').
+    - clientId \<String> - The client ID of the OAuth login provider.
+
+#### Example
+```kotlin
+val options = LoginWithUIParameter(
+  email = "js.hong@iotrust.kr",
+  loginProviders = arrayOf(
+    LoginProvider(provider = "google", clientId = "GOOGLE_CLIENT_ID"),
+    LoginProvider(provider = "discord", clientId = "DISCORD_CLIENT_ID"),
+    LoginProvider(provider = "naver", clientId = "NAVER_CLIENT_ID")
+  )
+)
+wepinWidgetSDK.loginWithUI(options)
+```
+
+#### Returns
+- \<WepinUser> __optional__
+  - status \<'success'|'fail'>  - The login status.
+  - userInfo \<UserInfo> __optional__ - The user's information, including:
+    - userId \<String> - The user's ID.
+    - email \<String> - The user's email.
+    - provider \<'google'|'apple'|'naver'|'discord'|'email'|'external_token'> - The login provider.
+    - use2FA \<Boolean> - Whether the user uses two-factor authentication.
+  - walletId \<String> = The user's wallet ID.
+  - userStatus: \<UserStatus> - The user's status of wepin login. including:
+    - loginStats: \<'complete' | 'pinRequired' | 'registerRequired'> - If the user's loginStatus value is not complete, it must be registered in the wepin.
+    - pinRequired?: \<Boolean>
+  - token: \<Token> - The user's token of wepin.
+    - accessToken: \<String>
+    - refreshToken \<String>
 
 ### openWidget
 ```kotlin
@@ -469,6 +524,54 @@ wepinWidgetSDK.send(SendData(account!!,txData = TxData(amount = "0.00001",toAddr
 - \<SendResponse> - response containing the transaction ID.
   - txId \<String> - The ID of the sent transaction.
 
+### receive
+```kotlin
+suspend fun receive(account: Account): ReceiveResponse
+```
+
+The `receive` method opens the account information page associated with the specified account. This method can only be used after logging into Wepin.
+
+## Supported Version
+Supported from version *`0.0.3* and later.
+
+#### Parameters
+- account \ <Account> - Provides the account information for the page that will be opend.
+  - network \<String> - The network associated with the account.
+  - address \<String> - The address of the account.
+  - contract \<String> __optional__ - The contract address of the token.
+
+#### Example
+```kotlin
+wepinWidgetSDK.receive(account = account!!)
+```
+
+#### Returns
+- \<ReceiveResponse> - response containing the Account Info.
+  - account \ <Account> - the account information for the page that was opend.
+    - network \<String> - The network associated with the account.
+    - address \<String> - The address of the account.
+    - contract \<String> __optional__ - The contract address of the token.
+
+### verifyPin
+```kotlin
+suspend fun verifyPin(count: Int = 1): Boolean
+```
+
+The `verifyPin` method displays a screen where the user can input their PIN and verifies whether the entered PIN is correct.
+
+## Supported Version
+Supported from version *`0.0.3* and later.
+
+## Parameters
+- None
+
+#### Example
+```kotlin
+wepinWidgetSDK.verifyPin()
+```
+
+## Returns
+\<Boolean> - `true` is correct Pin
 
 ### finalize
 ```kotlin

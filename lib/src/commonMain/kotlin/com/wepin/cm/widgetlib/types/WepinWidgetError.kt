@@ -87,6 +87,9 @@ object WepinWidgetError {
             ErrorCode.FAILED_SEND -> {
                 "Failed Send"
             }
+            ErrorCode.FAILED_RECEIVE -> {
+                "Failed Receive"
+            }
             ErrorCode.NFT_NOT_FOUND -> {
                 "NFT not Found"
             }
@@ -120,6 +123,7 @@ enum class ErrorCode {
     EXISTED_EMAIL,
     FAILED_REGISTER,
     FAILED_SEND,
+    FAILED_RECEIVE,
     INCORRECT_LIFECYCLE_EXCEPTION,
     ACCOUNT_NOT_FOUND,
     NFT_NOT_FOUND

@@ -2,9 +2,14 @@ package com.wepin.cm.widgetlib.webview
 
 import com.multiplatform.webview.jsbridge.JsMessage
 import com.multiplatform.webview.jsbridge.WebViewJsBridge
+import com.multiplatform.webview.jsbridge.dataToJsonString
 import com.multiplatform.webview.jsbridge.processParams
+import com.wepin.cm.widgetlib.types.Command
 import com.wepin.cm.widgetlib.types.JSRequest
 import com.wepin.cm.widgetlib.types.JSResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import platform.WebKit.WKScriptMessage
@@ -28,8 +33,20 @@ class IOSJSMessageHandler():
                     val param = Json.decodeFromString<JSRequest>(message.params)
                     val data = JSRequest(param.header, param.body)
                     val requestMessageHandler = NativeRequestProcessor()
-                    val response = requestMessageHandler.dispatcher(0, data)
-                    sendCallbackToJs(message.callbackId, Json.encodeToString(response))
+                    if (data.body.command == Command.CMD_GET_LOGIN_INFO) {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            val response = requestMessageHandler.getLoginInfo(data)
+                            if (response !== null)
+                                sendCallbackToJs(message.callbackId, Json.encodeToString(response))
+                        }
+                    } else {
+                        val response = requestMessageHandler.dispatcher(0, data)
+                        if (response !== null) {
+                            sendCallbackToJs(message.callbackId, Json.encodeToString(response))
+                        }
+                    }
+//                    val response = requestMessageHandler.dispatcher(0, data)
+
                 }
                 "wepin-compose-response" -> {
                     val param = Json.decodeFromString<JSResponse>(message.params)

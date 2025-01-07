@@ -33,3 +33,18 @@ data class JSSendRequestParameter(
     val to: String,
     val value: String
 )
+
+@Serializable
+data class JSReceiveRequestParameter(
+    val account: Account
+)
+
+@Serializable
+data class JSPinAuthRequestParameter(
+    val count: Int
+)
+
+@Serializable
+data class JSGetLoginInfoRequestParameter(
+    val provider: String
+)

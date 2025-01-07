@@ -15,8 +15,8 @@ class JSResponseHandler: IJsMessageHandler {
         try {
             val param = processParams<JSResponse>(message)
             val data = JSResponse(param.header, param.body)
-            val responsetMessageHandler = NativeResponseProcessor()
-            responsetMessageHandler.dispatcher(0, data)
+            val responseMessageHandler = NativeResponseProcessor()
+            responseMessageHandler.dispatcher(0, data)
         } catch(error: Exception) {
             throw error
         }

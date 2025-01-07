@@ -1,4 +1,12 @@
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +19,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
@@ -31,169 +41,198 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.wepin.cm.loginlib.types.*
+import com.wepin.cm.loginlib.types.FBToken
+import com.wepin.cm.loginlib.types.LoginOauth2Params
+import com.wepin.cm.loginlib.types.LoginResult
+import com.wepin.cm.loginlib.types.LoginWithEmailParams
+import com.wepin.cm.loginlib.types.OauthTokenType
+import com.wepin.cm.loginlib.types.Providers
+import com.wepin.cm.loginlib.types.WepinLoginOptions
 import com.wepin.cm.loginlib.types.network.LoginOauthAccessTokenRequest
 import com.wepin.cm.loginlib.types.network.LoginOauthIdTokenRequest
 import com.wepin.cm.widgetlib.WepinWidgetSDK
+import com.wepin.cm.widgetlib.error.WepinError
 import com.wepin.cm.widgetlib.types.Account
 import com.wepin.cm.widgetlib.types.AccountBalanceInfo
+import com.wepin.cm.widgetlib.types.LoginProvider
+import com.wepin.cm.widgetlib.types.LoginWithUIParameter
 import com.wepin.cm.widgetlib.types.SendData
 import com.wepin.cm.widgetlib.types.TxData
 import com.wepin.cm.widgetlib.types.WepinLifeCycle
 import com.wepin.cm.widgetlib.types.WepinNFT
 import com.wepin.cm.widgetlib.types.WidgetAttributes
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 class WidgetManager(context: Any) {
     var loginResult: LoginResult? by mutableStateOf(null)
     val _context = context
-    val privateKey = "privateKey"
+    val privateKey = "f49a54f62a2705e4371ad751532cb852b1d4e2d4392293c000b403c1c48d5c62"
+    //    val privateKey = "185e092fbe9ca2b713519936c359f51fc48cc487f5c134fc7e067f7410d085a7"
     val wepinWidgetSDK = WepinWidgetSDK(
         WepinLoginOptions(
             context = _context,
-            appId = "appId",
-            appKey = "appKey"
+            // 테스트완료 dev | domain : com.wepin.widget.sample
+            //appId = "071529f2f251f0ee3b437e0797e9dcfb",
+            //appKey = "ak_dev_FZN820fqyg3nWWCS1XUNJQcQHxe1EEAKesYZOTxrZyU" //android
+            //appKey = "ak_dev_O7vV0KwxOdfhQMFawi2OSEEnIpW3qIxIxFx0jC0kMGN" //ios
+
+            // 컴포즈 테스트중 stage| domain : com.wepin.widget.sample
+            //appId = "96CC230888FB9042FFAA50A8D964992D",
+            //appKey = "ak_test_fWiBdabkHDNkuGK8uGL2DCpGixq4Rb4n7BLGuJwoja0"// android
+            //appKey = "ak_test_KdJnTr7Bj7Fr2ELo2Xw06d4ckAHSpj8YBPfEcCZVysg"// iOS
+
+            // 컴포즈 테스트중 stage| domain : com.wepin.loginlibrary (android) | io.wepin.demo.login (ios)
+            appId = "a1852ca938e320ca17105ac818f2b1ae",
+            appKey = "ak_test_XpMjKcIPyMkUxMlmPa12ACBqGWY8WoY3HaixpJ3UNzv"// android
+            //appKey = "ak_test_UcnVLZkKcPd2LRxeo9C2Cy8aNsIva497kbWZ5QI4mEJ"// iOS
+
+//            appId = "3e124d660c2910ed14f3fe938e0b7df4",   //비정상 android
+//            appKey = "ak_dev_owOVnOMw6Lzc827lyasW6DzIHckIDqbLeAUg67vdDsJ"
+//            appId = "78c46907ead098c40f6ccb1b3721ad2f",
+//            appKey = "ak_test_TMuBegDRNRu4S7dsqbl2aMsAK0chC46q9LAAALSLAdr"
+//            appId = "6e98090de4260eef690850f5c50fc2e9",   //정상 android without login provider
+//            appKey = "ak_dev_jvQuIcAStKuqwTuRVlLU8FJgDpWgdp1qJCSOTOyLqex"
+//            appId = "3e6b832130759a17a34b30cb831223f6",
+//            appKey = "ak_dev_AEhkffM59145SGcLjXcz01cPpsCynUGj33h6GBvrnsW"  //android
+//            appKey = "ak_dev_aFs4parzvLpNypLBMJDpGvkqvP4WNqmfB4ItZrWCuk6"
         )
     )
-    var wepinStatus: WepinLifeCycle = WepinLifeCycle.NOT_INITIALIZED
-    var nftList = arrayListOf<WepinNFT>()
-    var accountsList = arrayListOf<Account>()
-    var selectedAccounts = arrayListOf<Account>()
-    var balanceList = arrayListOf<AccountBalanceInfo>()
+    //ios app key: ak_dev_f7NGPDJ4s0vEIDawjf98qfAsnDaIvIrzcxGFx2bL1q7
+    //ios stage app key: ak_test_TMuBegDRNRu4S7dsqbl2aMsAK0chC46q9LAAALSLAdr
 
-    private fun signupWithEmail(
+    private suspend fun signupWithEmail(
         email: String,
         password: String,
-        coroutineScope: CoroutineScope,
         setResponse: (LoginResult?) -> Unit,
         setText: (String) -> Unit,
     ) {
         val loginOption = LoginWithEmailParams(email, password)
-        coroutineScope.launch {
-            try {
-                val response = wepinWidgetSDK.login!!.signUpWithEmailAndPassword(loginOption)
-                setResponse(response)
-                setText("$response")
-            } catch (e: Exception) {
-                setText("fail - $e")
-            }
+        try {
+            val response = wepinWidgetSDK.login!!.signUpWithEmailAndPassword(loginOption)
+            setResponse(response)
+            setText("$response")
+        } catch (e: Exception) {
+            setText("fail - $e")
         }
+
     }
 
-    private fun loginWithEmail(
+    private suspend fun loginWithEmail(
         email: String,
         password: String,
-        coroutineScope: CoroutineScope,
         setResponse: (LoginResult?) -> Unit,
         setText: (String) -> Unit,
     ) {
         val loginOption = LoginWithEmailParams(email, password)
-        coroutineScope.launch {
-            try {
-                val response = wepinWidgetSDK.login!!.loginWithEmailAndPassword(loginOption)
-                val result = wepinWidgetSDK.login!!.loginWepin(response)
-                setResponse(response)
-                setText("$result")
-            } catch (e: Exception) {
-                setText("fail - $e")
-            }
+        try {
+            val response = wepinWidgetSDK.login!!.loginWithEmailAndPassword(loginOption)
+            val result = wepinWidgetSDK.login!!.loginWepin(response)
+            setResponse(response)
+            setText("$result")
+        } catch (e: Exception) {
+            setText("fail - $e")
         }
+
     }
 
-    private fun loginOauth(
+    private suspend fun loginOauth(
         provider: String,
         clientId: String,
         tokenType: OauthTokenType,
-        coroutineScope: CoroutineScope,
         setResponse: (LoginResult?) -> Unit,
         setText: (String) -> Unit,
     ) {
         val loginOption = LoginOauth2Params(provider, clientId)
-        coroutineScope.launch {
-            try {
-                val loginResponse = wepinWidgetSDK.login!!.loginWithOauthProvider(loginOption)
-                when (tokenType) {
-                    OauthTokenType.ID_TOKEN -> {
-                        loginIdToken(
-                            loginResponse.token,
-                            setResponse,
-                            setText,
-                            coroutineScope,
-                        )
-                    }
-
-                    OauthTokenType.ACCESS_TOKEN -> {
-                        loginAccessToken(
-                            loginResponse.provider,
-                            loginResponse.token,
-                            setResponse,
-                            setText,
-                            coroutineScope,
-                        )
-                    }
-
-                    else -> {
-                        setResponse(loginResponse as LoginResult)
-                    }
+        try {
+            val loginResponse = wepinWidgetSDK.login!!.loginWithOauthProvider(loginOption)
+            when (tokenType) {
+                OauthTokenType.ID_TOKEN -> {
+                    loginIdToken(
+                        loginResponse.token,
+                        setResponse,
+                        setText,
+                    )
                 }
-            } catch (e: Exception) {
-                setResponse(null)
-                setText("fail - $e")
+
+                OauthTokenType.ACCESS_TOKEN -> {
+                    loginAccessToken(
+                        loginResponse.provider,
+                        loginResponse.token,
+                        setResponse,
+                        setText,
+                    )
+                }
+
+                else -> {
+                    setResponse(loginResponse as LoginResult)
+                }
             }
+        } catch (e: Exception) {
+            println("loginOauthFail")
+            setResponse(null)
+            setText("fail - $e")
+            println("fail - $e")
         }
+
     }
 
-    private fun loginIdToken(
+    private suspend fun loginIdToken(
         token: String,
         setResponse: (LoginResult?) -> Unit,
         setText: (String) -> Unit,
-        coroutineScope: CoroutineScope,
     ) {
-        coroutineScope.launch {
-            try {
-                val sign = wepinWidgetSDK.login!!.getSignForLogin(
-                    privateKey,
-                    token,
-                )
-                val loginOption = LoginOauthIdTokenRequest(idToken = token, sign = sign)
-                val loginResponse = wepinWidgetSDK.login!!.loginWithIdToken(loginOption)
-                val response = wepinWidgetSDK.login!!.loginWepin(loginResponse)
-                setResponse(loginResponse)
-                setText("$response")
-            } catch (e: Exception) {
-                setResponse(null)
-                setText("fail - ${e.message}")
-            }
+        try {
+            println("loginIdToken")
+            val sign = wepinWidgetSDK.login!!.getSignForLogin(
+                privateKey,
+                token,
+            )
+            println("sign: $sign")
+            val loginOption = LoginOauthIdTokenRequest(idToken = token, sign = sign)
+            val loginResponse = wepinWidgetSDK.login!!.loginWithIdToken(loginOption)
+            println("loginResponse: $loginResponse")
+            val response = wepinWidgetSDK.login!!.loginWepin(loginResponse)
+            println("response: $response")
+            setResponse(loginResponse)
+            setText("$response")
+        } catch (e: Exception) {
+            println("fail - $e")
+            setResponse(null)
+            setText("fail - ${e.message}")
         }
     }
 
-    private fun loginAccessToken(
+    private suspend fun loginAccessToken(
         provider: String,
         token: String,
         setResponse: (LoginResult?) -> Unit,
         setText: (String) -> Unit,
-        coroutineScope: CoroutineScope,
     ) {
-        coroutineScope.launch {
-            try {
-                val sign = wepinWidgetSDK.login!!.getSignForLogin(
-                    privateKey,
-                    token,
-                )
-                val loginOption = LoginOauthAccessTokenRequest(provider, token, sign)
-                val loginResponse = wepinWidgetSDK.login!!.loginWithAccessToken(loginOption)
-
-                val response = wepinWidgetSDK.login!!.loginWepin(loginResponse)
-                setResponse(loginResponse)
-                setText("$response")
-            } catch (e: Exception) {
-                setResponse(null)
-                setText("fail - ${e.message}")
-            }
+        try {
+            println("loginAccessToken")
+            val loginOption = LoginOauthAccessTokenRequest(provider, token)
+            val loginResponse = wepinWidgetSDK.login!!.loginWithAccessToken(loginOption)
+            val response = wepinWidgetSDK.login!!.loginWepin(loginResponse)
+            setResponse(loginResponse)
+            setText("$response")
+        } catch (e: Exception) {
+            println("fail - $e")
+            setResponse(null)
+            setText("fail - ${e.message}")
         }
     }
 
@@ -209,14 +248,6 @@ class WidgetManager(context: Any) {
     }
 
     private fun logoutWepin(coroutineScope: CoroutineScope, setText: (String) -> Unit) {
-        coroutineScope.launch {
-            try {
-                val response = wepinWidgetSDK.login!!.logoutWepin()
-                setText("$response")
-            } catch (e: Exception) {
-                setText("fail - ${e.message}")
-            }
-        }
     }
 
     fun send(
@@ -227,7 +258,23 @@ class WidgetManager(context: Any) {
         coroutineScope.launch {
             try {
                 val txId = wepinWidgetSDK.send(data)
+                println("txId: $txId")
                 setText("$txId")
+            } catch (e: Exception) {
+                setText("$e")
+            }
+        }
+    }
+
+    fun receive(
+        coroutineScope: CoroutineScope,
+        account: Account,
+        setText: (String) -> Unit
+    ) {
+        coroutineScope.launch {
+            try {
+                val result = wepinWidgetSDK.receive(account)
+                setText("$result")
             } catch (e: Exception) {
                 setText("$e")
             }
@@ -243,6 +290,7 @@ class WidgetManager(context: Any) {
         setResponse: (LoginResult?) -> Unit,
         setItem: (String) -> Unit,
         setText: (String) -> Unit,
+        setLoading: (Boolean) -> Unit,
         setAccountList: (ArrayList<Account>) -> Unit,
         setBalanceList: (ArrayList<AccountBalanceInfo>) -> Unit,
         setNFTList: (ArrayList<WepinNFT>) -> Unit,
@@ -256,109 +304,172 @@ class WidgetManager(context: Any) {
                 val attributes =
                     WidgetAttributes(defaultLanguage = "ko", defaultCurrency = "KRW")
                 coroutineScope.launch {
-                    if (wepinWidgetSDK.isInitalized()) {
-                        setText("It's already initalized")
-                    } else {
-                        val response = wepinWidgetSDK.init(attributes)
+                    try {
+                        if (wepinWidgetSDK.isInitalized()) {
+                            setText("It's already initalized")
+                        } else {
+                            setLoading(true)
+
+                            val response = wepinWidgetSDK.init(attributes)
+                            val wepinStatus = wepinWidgetSDK.getStatus()
+                            setUserStatus(wepinStatus)
+                            setText("$response")
+                            setLoading(false)
+                        }
+                    } catch(e: Exception) {
+                        println("e: $e")
+                    }
+                }
+            }
+            "Login with UI" -> {
+                coroutineScope.launch {
+                    try {
+                        val options = LoginWithUIParameter(
+                            email = "js.hong@iotrust.kr",
+//                            loginProviders = arrayOf(
+//                                LoginProvider(provider = "google", clientId = "850196342174-7r1sngs6ok0n8l46ua56p1vsi6bi5a46.apps.googleusercontent.com"),
+//                                LoginProvider(provider = "discord", clientId = "1306522198076293120"),
+//                                LoginProvider(provider = "naver", clientId = "ORxvrZrdjceVUEFxWLOr")
+//                            )
+                            loginProviders = arrayOf(
+                                LoginProvider(provider = "google", clientId = "1006602884997-ti7v6ldm1obtu209uousvfkh2e58klf6.apps.googleusercontent.com"),
+                                LoginProvider(provider = "discord", clientId = "1306522198076293120"),
+                                LoginProvider(provider = "naver", clientId = "ORxvrZrdjceVUEFxWLOr")
+                            )
+                        )
+                        wepinWidgetSDK.loginWithUI(options)
+
                         val wepinStatus = wepinWidgetSDK.getStatus()
+                        println("login wepinStatus: $wepinStatus")
                         setUserStatus(wepinStatus)
-                        setText("$response")
+
+                    } catch(e: Exception) {
+                        println("======error: $e")
                     }
                 }
             }
 
             "Login with Google" -> {
-                loginOauth(
-                    provider = "google",
-                    clientId = "googleClientId",
-                    tokenType = OauthTokenType.ID_TOKEN,
-                    coroutineScope = coroutineScope,
-                    setResponse = setResponse,
-                    setText = setText,
-                )
+                val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+                    println("Unhandled Exception: $throwable")
+                }
                 coroutineScope.launch {
-                    val wepinStatus = wepinWidgetSDK.getStatus()
-                    setUserStatus(wepinStatus)
+                    try {
+                        setLoading(true)
+                        println("login with google")
+                        loginOauth(
+                            provider = "google",
+//                            clientId = "914682313325-c9kqcpmh0vflkqflsgh6cp35b4ife95q.apps.googleusercontent.com",
+                            //clientId = "850196342174-7r1sngs6ok0n8l46ua56p1vsi6bi5a46.apps.googleusercontent.com",
+                            clientId = "1006602884997-ti7v6ldm1obtu209uousvfkh2e58klf6.apps.googleusercontent.com",
+                            tokenType = OauthTokenType.ID_TOKEN,
+                            setResponse = setResponse,
+                            setText = setText,
+                        )
+
+                        val wepinStatus = wepinWidgetSDK.getStatus()
+                        println("login wepinStatus: $wepinStatus")
+                        setUserStatus(wepinStatus)
+                        setLoading(false)
+                    } catch (e: Exception) {
+                        println("e: $e")
+                    }
                 }
 
             }
 
             "Login with Apple" -> {
-                loginOauth(
-                    provider = "apple",
-                    clientId = "appleClientId",
-                    tokenType = OauthTokenType.ID_TOKEN,
-                    coroutineScope = coroutineScope,
-                    setResponse = setResponse,
-                    setText = setText,
-                )
                 coroutineScope.launch {
+                    setLoading(true)
+                    loginOauth(
+                        provider = "apple",
+                        clientId = "io.wepin.testlocal",
+                        tokenType = OauthTokenType.ID_TOKEN,
+                        setResponse = setResponse,
+                        setText = setText,
+                    )
+
                     val wepinStatus = wepinWidgetSDK.getStatus()
                     setUserStatus(wepinStatus)
+                    setLoading(false)
                 }
             }
 
             "Login with Discord" -> {
-                loginOauth(
-                    provider = "discord",
-                    clientId = "DiscordClientId",
-                    tokenType = OauthTokenType.ACCESS_TOKEN,
-                    coroutineScope = coroutineScope,
-                    setResponse = setResponse,
-                    setText = setText,
-                )
                 coroutineScope.launch {
+                    setLoading(true)
+                    loginOauth(
+                        provider = "discord",
+                        clientId = "1311495043022061609",
+                        tokenType = OauthTokenType.ACCESS_TOKEN,
+                        setResponse = setResponse,
+                        setText = setText,
+                    )
+
                     val wepinStatus = wepinWidgetSDK.getStatus()
                     setUserStatus(wepinStatus)
+                    setLoading(false)
                 }
             }
 
             "Login with Naver" -> {
-                loginOauth(
-                    provider = "naver",
-                    clientId = "DiscordClientId",
-                    tokenType = OauthTokenType.ACCESS_TOKEN,
-                    coroutineScope = coroutineScope,
-                    setResponse = setResponse,
-                    setText = setText,
-                )
                 coroutineScope.launch {
+                    setLoading(true)
+                    loginOauth(
+                        provider = "naver",
+                        clientId = "cMHFoFq6Ep2FzDM0fnFP",
+                        tokenType = OauthTokenType.ACCESS_TOKEN,
+                        setResponse = setResponse,
+                        setText = setText,
+                    )
                     val wepinStatus = wepinWidgetSDK.getStatus()
                     setUserStatus(wepinStatus)
+                    setLoading(false)
                 }
             }
 
             "SignUp with Email" -> {
-                signupWithEmail(
-                    email = "email",
-                    password = "password",
-                    coroutineScope = coroutineScope,
-                    setResponse = setResponse,
-                    setText = setText,
-                )
                 coroutineScope.launch {
+                    setLoading(true)
+                    signupWithEmail(
+                        email = "email",
+                        password = "password",
+                        setResponse = setResponse,
+                        setText = setText,
+                    )
+
                     val wepinStatus = wepinWidgetSDK.getStatus()
                     setUserStatus(wepinStatus)
+                    setLoading(false)
                 }
             }
 
             "Login with Email" -> {
-                loginWithEmail(
-                    email = "email",
-                    password = "password",
-                    coroutineScope = coroutineScope,
-                    setResponse = setResponse,
-                    setText = setText,
-                )
                 coroutineScope.launch {
+                    setLoading(true)
+                    loginWithEmail(
+                        email = "js.hong@iotrust.kr",
+                        password = "doublebk13!@",
+                        setResponse = setResponse,
+                        setText = setText,
+                    )
+
                     val wepinStatus = wepinWidgetSDK.getStatus()
                     setUserStatus(wepinStatus)
+                    setLoading(false)
                 }
             }
 
             "Open Widget" -> {
                 coroutineScope.launch {
                     wepinWidgetSDK.openWidget()
+                }
+            }
+
+            "Pin Auth" -> {
+                coroutineScope.launch {
+                    val result = wepinWidgetSDK.verifyPin()
+                    setText("result: $result")
                 }
             }
 
@@ -369,6 +480,7 @@ class WidgetManager(context: Any) {
             "Get Account" -> {
                 coroutineScope.launch {
                     try {
+                        setLoading(true)
                         val accountsList = wepinWidgetSDK.getAccounts()!!
                         val wepinStatus = wepinWidgetSDK.getStatus()
                         setUserStatus(wepinStatus)
@@ -376,6 +488,8 @@ class WidgetManager(context: Any) {
                         setText("Success")
                     } catch (e: Exception) {
                         setText("fail - $e")
+                    } finally {
+                        setLoading(false)
                     }
                 }
             }
@@ -383,6 +497,7 @@ class WidgetManager(context: Any) {
             "Get NFTs" -> {
                 coroutineScope.launch {
                     try {
+                        setLoading(true)
                         val nftList = wepinWidgetSDK.getNFTs(refresh = false)
                         val wepinStatus = wepinWidgetSDK.getStatus()
                         setUserStatus(wepinStatus)
@@ -391,6 +506,8 @@ class WidgetManager(context: Any) {
                         openDialog("NFT")
                     } catch (e: Exception) {
                         setText("fail - $e")
+                    } finally {
+                        setLoading(false)
                     }
                 }
             }
@@ -398,6 +515,7 @@ class WidgetManager(context: Any) {
             "Get NFTs(with refresh)" -> {
                 coroutineScope.launch {
                     try {
+                        setLoading(true)
                         val nftList = wepinWidgetSDK.getNFTs(refresh = true)
                         val wepinStatus = wepinWidgetSDK.getStatus()
                         setUserStatus(wepinStatus)
@@ -406,6 +524,8 @@ class WidgetManager(context: Any) {
                         openDialog("NFT")
                     } catch (e: Exception) {
                         setText("fail - $e")
+                    } finally {
+                        setLoading(false)
                     }
                 }
             }
@@ -421,10 +541,17 @@ class WidgetManager(context: Any) {
                     selectedAccounts
                 }
                 coroutineScope.launch {
-                    val balanceList = wepinWidgetSDK.getBalance(ArrayList(balanceAccount))
-                    setText("Success")
-                    setBalanceList(balanceList!!)
-                    openDialog("Balance")
+                    try {
+                        setLoading(true)
+                        val balanceList = wepinWidgetSDK.getBalance(ArrayList(balanceAccount))
+                        setText("Success")
+                        setBalanceList(balanceList!!)
+                        openDialog("Balance")
+                    } catch (e: Exception) {
+                        setText("fail - $e")
+                    } finally {
+                        setLoading(false)
+                    }
                 }
             }
 
@@ -455,6 +582,13 @@ class WidgetManager(context: Any) {
                     } catch (e: Exception) {
                         setText("error: $e")
                     }
+                }
+            }
+
+            "Receive" -> {
+                coroutineScope.launch {
+                    println("receive:sss")
+                    openDialog("Receive")
                 }
             }
 
@@ -491,9 +625,43 @@ fun App(context: Any) {
     var text by remember { mutableStateOf("Your long text goes here...") }
     var userStatus by remember { mutableStateOf(WepinLifeCycle.NOT_INITIALIZED) }
     val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
     MaterialTheme {
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             Header()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .shadow(
+                        elevation = 6.dp, // CustomButton과 비슷한 그림자 높이
+                        shape = RoundedCornerShape(12.dp), // CustomButton의 모양과 일치
+                        clip = false
+                    )
+                    .background(
+                        Color.White,
+                        shape = RoundedCornerShape(12.dp)
+                    ) // CustomButton의 배경색과 동일
+                    .border(
+                        width = 1.dp,
+                        color = Color(0xFFE0E0E0), // CustomButton과 유사한 테두리 색상
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .padding(16.dp), // 내부 패딩 설정
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically, // 수직 정렬을 중앙으로
+                    horizontalArrangement = Arrangement.SpaceBetween, // 요소들 사이의 간격을 최대로
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // 왼쪽 텍스트
+                    Text("Wepin Status: $userStatus", color = Color.Black)
+
+                    // 오른쪽에 로딩 아이콘
+                    LoadingArrowIndicator(isLoading = isLoading)
+                }
+            }
             ScrollableContent(
                 testItem = getMenuList(),
                 onItemClicked = { selectedItem ->
@@ -505,6 +673,7 @@ fun App(context: Any) {
                         setResponse = { widgetManager.loginResult },
                         setItem = { item = it },
                         setText = { text = it },
+                        setLoading = { isLoading = it },
                         setAccountList = {
                             accountList = it
                             if (it.isEmpty()) {
@@ -523,7 +692,7 @@ fun App(context: Any) {
                 accountExist = accountList.isNotEmpty(),
                 userState = userStatus
             )
-            ResultBox(item = item, text = text)
+//            ResultBox(item = item, text = text)
         }
         if (showDialog) {
             when (dialogType) {
@@ -576,6 +745,32 @@ fun App(context: Any) {
                         )
                     },
                     onDismiss = { showDialog = false })
+                "Receive" -> DropdownDialog(
+                    title = "Receive",
+                    items = accountList.map { account ->
+                        if (account.contract != null) {
+                            "${account.network} - ${account.contract}"  // contract가 null이 아니면 contract 값을 추가
+                        } else {
+                            account.network  // contract가 null이면 network만 사용
+                        }
+                    },
+                    onConfirm = { accountNetwork, to, amount ->
+                        val accountInfo = accountNetwork.split(" ")
+                        var receiveAccount: Account? = null
+                        if (accountInfo.size == 1) {
+                            receiveAccount =
+                                accountList.find { account -> account.network == accountInfo[0] && account.contract == null }
+                        } else {
+                            receiveAccount =
+                                accountList.find { account -> account.network == accountInfo[0] && account.contract == accountInfo[2] }
+                        }
+                        widgetManager.receive(
+                            coroutineScope = coroutineScope,
+                            account = receiveAccount!!,
+                            setText = { text = it }
+                        )
+                    },
+                    onDismiss = { showDialog = false })
 
                 "Attribute" -> AttributeDialog(onConfirm = { language, currency ->
                     widgetManager.changeLanguage(
@@ -588,6 +783,61 @@ fun App(context: Any) {
                 }, onDismiss = { showDialog = false })
             }
         }
+    }
+}
+
+@Composable
+fun LoadingArrowIndicator(isLoading: Boolean) {
+    // 애니메이션 회전 각도
+    val infiniteTransition = rememberInfiniteTransition()
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing), // 1초 동안 360도 회전
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    Canvas(
+        modifier = Modifier.size(24.dp).graphicsLayer {
+            // 로딩 중일 때만 회전
+            rotationZ = if (isLoading) rotation else 0f
+        }
+    ) {
+        // 화살표 모양 그리기
+        val strokeWidth = 4.dp.toPx()
+        val radius = (size.minDimension / 2) - strokeWidth / 2
+        val center = Offset(size.width / 2, size.height / 2)
+
+        // 원형 경로 그리기 (270도만)
+        drawArc(
+            color = Color.Gray,
+            startAngle = -90f,
+            sweepAngle = 270f,
+            useCenter = false,
+            topLeft = Offset(center.x - radius, center.y - radius),
+            size = Size(radius * 2, radius * 2),
+            style = Stroke(width = strokeWidth)
+        )
+
+        // 화살표 머리 부분 그리기 (삼각형)
+        val arrowSize = 6.dp.toPx() // 화살표 크기
+        val arrowAngleDegrees = -90f + 285f // 화살표의 각도 (원호의 끝 부분)
+        val arrowAngleRadians = arrowAngleDegrees * (PI / 180f).toFloat()
+
+        // 화살표 위치 계산 (원호 끝)
+        val arrowX = (center.x + (radius) * cos(arrowAngleRadians))
+        val arrowY = (center.y + (radius) * sin(arrowAngleRadians))
+
+        val trianglePath = Path().apply {
+            moveTo(arrowX, arrowY) // 화살표 꼭짓점 (원호의 끝)
+            lineTo(arrowX - arrowSize, arrowY + arrowSize) // 왼쪽 아래
+            lineTo(arrowX + arrowSize, arrowY + arrowSize) // 오른쪽 아래
+            close()
+        }
+
+        drawPath(trianglePath, color = Color.Gray)
     }
 }
 
@@ -605,9 +855,27 @@ fun CustomButton(
             contentColor = Color.Black,
         ),
         border = null,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
+            .padding(bottom = 10.dp, start = 12.dp, end = 12.dp)
+            .shadow(
+                elevation = 3.dp,
+                shape = RoundedCornerShape(12.dp),
+                clip = false,
+            ) // 그림자와 모서리 둥글게
+            .background(Color.White, shape = RoundedCornerShape(12.dp))
+            .border(
+                width = 1.dp,
+                color = Color(0xFFE0E0E0),
+                shape = RoundedCornerShape(12.dp)
+            ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = ButtonDefaults.elevation(defaultElevation = 8.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+        Box(
+            modifier = Modifier.fillMaxWidth()
+                .padding(vertical = 8.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
             Text(text)
         }
     }
@@ -620,7 +888,7 @@ fun CustomButton(
 
 @Composable
 fun Header() {
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
         Text(
             text = "Sample Widget Library",
             fontSize = 20.sp,
@@ -640,7 +908,7 @@ fun ScrollableContent(
         modifier =
         Modifier
             .fillMaxWidth()
-            .height(400.dp)
+//            .height(400.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -652,7 +920,8 @@ fun ScrollableContent(
                 "Login with Discord",
                 "Login with Naver",
                 "SignUp with Email",
-                "Login with Email" -> {
+                "Login with Email",
+                "Login with UI"-> {
                     if (userState != WepinLifeCycle.INITIALIZED) {
                         show = false
                     }
@@ -665,6 +934,7 @@ fun ScrollableContent(
                 }
 
                 "Open Widget",
+                "Pin Auth",
                 "Get Account" -> {
                     if (userState !== WepinLifeCycle.LOGIN) {
                         show = false
@@ -675,7 +945,8 @@ fun ScrollableContent(
                 "Get NFTs(with refresh)",
                 "Account List View",
                 "Get Balance",
-                "Send" -> {
+                "Send",
+                "Receive"-> {
                     if (userState !== WepinLifeCycle.LOGIN || !accountExist) {
                         show = false
                     }
@@ -873,22 +1144,24 @@ fun DropdownDialog(
                     }
                 }
 
-                // 추가된 텍스트 입력 상자
-                Spacer(modifier = Modifier.height(16.dp))
-                TextField(
-                    value = textFieldValue1,
-                    onValueChange = { textFieldValue1 = it },
-                    label = { Text("To") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (title == "Send") {
+                    // 추가된 텍스트 입력 상자
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TextField(
+                        value = textFieldValue1,
+                        onValueChange = { textFieldValue1 = it },
+                        label = { Text("To") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                Spacer(modifier = Modifier.height(16.dp))
-                TextField(
-                    value = textFieldValue2,
-                    onValueChange = { textFieldValue2 = it },
-                    label = { Text("Amount") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TextField(
+                        value = textFieldValue2,
+                        onValueChange = { textFieldValue2 = it },
+                        label = { Text("Amount") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         },
         confirmButton = {

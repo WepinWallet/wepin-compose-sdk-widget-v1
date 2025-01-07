@@ -1,10 +1,7 @@
 package com.wepin.cm.widgetlib.webview
 
 import WepinMainViewController
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.ui.window.ComposeUIViewController
 import com.multiplatform.webview.web.NativeWebView
-import com.wepin.cm.widgetlib.const.WidgetUrl
 import com.wepin.cm.widgetlib.storage.AppData
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readValue
@@ -16,8 +13,6 @@ import platform.SafariServices.SFSafariViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIColor
 import platform.UIKit.UIModalPresentationOverFullScreen
-import platform.UIKit.UINavigationController
-import platform.UIKit.UIScreen
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.UIWindow
@@ -54,10 +49,10 @@ actual class WebViewManager() {
 
     actual fun closeWidget() {
         if (_webview != null) {
-            _webview!!.removeConstraints(_webview!!.constraints)
             _webview!!.stopLoading()
-            _webview!!.removeFromSuperview()
             _webview!!.navigationDelegate = null
+            _webview!!.removeConstraints(_webview!!.constraints)
+
             _webview!!.setUIDelegate(null)
             if (_safariVC != null) {
                 closeSafariVC()
@@ -65,6 +60,8 @@ actual class WebViewManager() {
             val keyWindow = UIApplication.sharedApplication.keyWindow
             val rootViewController = keyWindow?.rootViewController?.presentedViewController
             rootViewController?.dismissViewControllerAnimated(true, completion = null)
+
+            _webview!!.removeFromSuperview()
             viewController = null
             _webview = null
         }

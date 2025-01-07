@@ -6,4 +6,8 @@ import kotlinx.coroutines.CompletableDeferred
 object WebViewResponseManager {
     var registerDeferred: CompletableDeferred<JSResponse.JSResponseBody.JSRegisterResponseBodyData>? = null
     var sendDeferred: CompletableDeferred<String>? = null
+    var receiveDeferred: CompletableDeferred<String>? = null
+    //var pinDeferred: CompletableDeferred<JSResponse.JSResponseBody.JSPinAuthResponseBodyData>? = null
+    var pinDeferred: CompletableDeferred<Any>? = null
+    var loginDeferred: CompletableDeferred<Boolean>? = null
 }

@@ -3,6 +3,7 @@ package com.wepin.cm.widgetlib.network
 import com.wepin.cm.widgetlib.types.GetAccountListRequest
 import com.wepin.cm.widgetlib.types.RegisterRequest
 import com.wepin.cm.widgetlib.types.UpdateTermsAcceptedRequest
+import com.wepin.cm.widgetlib.types.VerifyPinRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -20,6 +21,7 @@ interface WepinApiService {
     suspend fun refreshNFTList(accessToken: String, walletId: String, userId: String): HttpResponse
     suspend fun register(accessToken: String, data: RegisterRequest): HttpResponse
     suspend fun updateTermsAccepted(accessToken: String, userId: String, parameter: UpdateTermsAcceptedRequest): HttpResponse
+    suspend fun verifyPin(accessToken: String, parameter: VerifyPinRequest): HttpResponse
 }
 
 fun createWepinApiService(okHttpClient: HttpClient): WepinApiService =
@@ -85,6 +87,19 @@ fun createWepinApiService(okHttpClient: HttpClient): WepinApiService =
             parameter: UpdateTermsAcceptedRequest
         ): HttpResponse {
             return okHttpClient.patch("user/$userId/terms-accepted") {
+                headers {
+                    append("Authorization", "Bearer $accessToken")
+                }
+                contentType(Json)
+                setBody(parameter)
+            }
+        }
+
+        override suspend fun verifyPin(
+            accessToken: String,
+            parameter: VerifyPinRequest
+        ): HttpResponse {
+            return okHttpClient.post("wallet/pin/verify") {
                 headers {
                     append("Authorization", "Bearer $accessToken")
                 }

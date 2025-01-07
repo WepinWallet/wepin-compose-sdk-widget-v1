@@ -149,6 +149,8 @@ class WepinMainViewController(nibName: String?, bundle: NSBundle?) : UIViewContr
     }
 
     private fun evaluateJavaScript(js: String) {
-        WebViewManager.getInstance()._webview!!.evaluateJavaScript(js, null)
+        WebViewManager.getInstance()._webview.let {
+            it?.evaluateJavaScript(js, null)
+        }
     }
 }

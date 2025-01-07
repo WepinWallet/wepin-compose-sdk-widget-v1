@@ -1,6 +1,7 @@
 fun getMenuList(): Array<String> {
     return arrayOf(
         "Init",
+        "Login with UI",
         "Login with Google",
         "Login with Apple",
         "Login with Discord",
@@ -9,12 +10,14 @@ fun getMenuList(): Array<String> {
         "Login with Email",
         "Change Language",
         "Open Widget",
+        "Pin Auth",
         "Get Account",
         "Get NFTs",
         "Get NFTs(with refresh)",
         "Account List View",
         "Get Balance",
         "Send",
+        "Receive",
         "Logout",
         "Register",
         "Finalize"

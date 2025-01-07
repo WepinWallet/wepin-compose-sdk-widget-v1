@@ -7,7 +7,7 @@ data class Account(
     val network: String,
     val address: String,
     val contract: String? = null,
-//    val isAA: Boolean? = false
+    val isAA: Boolean? = false
 )
 
 @Serializable

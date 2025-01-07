@@ -94,10 +94,10 @@ kotlin {
 //                api("io.github.kevinnzou.local:compose-webview-multiplatform:1.9.20")
 
                 //coroutine
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1-native-mt")
+//                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1-native-mt")
 
                 //wepin-login-library
-                api("io.wepin:wepin-compose-sdk-login-v1:0.0.9")
+                api("io.wepin:wepin-compose-sdk-login-v1:0.0.10")
             }
         }
         val androidMain by getting {
@@ -161,7 +161,7 @@ mavenPublishing {
     // or when publishing to https://s01.oss.sonatype.org
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
     signAllPublications()
-    coordinates("io.wepin.local", "wepin-compose-sdk-login-v1", "${project.version}")
+    coordinates("io.wepin", "wepin-compose-sdk-widget-v1", "${project.version}")
 
     pom {
         name.set(project.name)

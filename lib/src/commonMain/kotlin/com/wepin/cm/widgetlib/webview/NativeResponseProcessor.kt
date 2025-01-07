@@ -23,7 +23,29 @@ class NativeResponseProcessor {
                     WebViewResponseManager.sendDeferred?.complete((response.body.data as JSResponse.JSResponseBody.JSStringResponse).data)
                 }
             }
-            else -> throw Error("")
+            Command.CMD_PIN_AUTH -> {
+                if (response.body.state != "SUCCESS") {
+                    if ((response.body.data as JSResponse.JSResponseBody.JSStringResponse).data == "User Cancel") {
+                        WebViewResponseManager.pinDeferred?.complete(response.body.data )
+                    } else {
+                        WebViewResponseManager.pinDeferred?.completeExceptionally(Exception("${response.body.data}"))
+                    }
+                } else {
+                    WebViewResponseManager.pinDeferred?.complete(response.body.data as JSResponse.JSResponseBody.JSPinAuthResponseBodyData)
+                }
+            }
+            Command.CMD_RECEIVE_ACCOUNT -> {
+                if (response.body.state != "SUCCESS") {
+                    if ((response.body.data as JSResponse.JSResponseBody.JSStringResponse).data == "User Cancel") {
+                        WebViewResponseManager.receiveDeferred?.complete("${response.body.data}")
+                    } else {
+                        WebViewResponseManager.receiveDeferred?.completeExceptionally(Exception("${response.body.data}"))
+                    }
+                } else {
+                    WebViewResponseManager.receiveDeferred?.complete("${response.body.state}")
+                }
+            }
+            else -> throw Error("It's invalid command")
         }
     }
 }

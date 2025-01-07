@@ -19,10 +19,13 @@ object SealedSerializer: JsonContentPolymorphicSerializer<JSResponse.JSResponseB
             val jsonObject = element.jsonObject
             return when {
                 jsonObject.containsKey("appKey") -> JSResponse.JSResponseBody.JSReadyToWidgetResponseBodyData.serializer()
+                jsonObject.containsKey("provider") && jsonObject.containsKey("token") -> JSResponse.JSResponseBody.JSGetLoginInfoResponseBodyData.serializer()
                 jsonObject.containsKey("token") -> JSResponse.JSResponseBody.JSGoogleLogInResponseBodyData.serializer()
                 jsonObject.containsKey("header") -> JSResponse.JSResponseBody.JSGetSdkRequestResponseBodyData.serializer()
                 jsonObject.containsKey("email") -> JSResponse.JSResponseBody.JSSetUserEmailResponseBodyData.serializer()
                 jsonObject.containsKey("walletId") -> JSResponse.JSResponseBody.JSRegisterResponseBodyData.serializer()
+                jsonObject.containsKey("UVDs") -> JSResponse.JSResponseBody.JSPinAuthResponseBodyData.serializer()
+
                 else -> {
                     throw IllegalArgumentException("Unsupported JSResponseBodyData type.")
                 }
@@ -40,7 +43,7 @@ object SealedSerializer: JsonContentPolymorphicSerializer<JSResponse.JSResponseB
                     }
 
                     override fun serialize(encoder: Encoder, value: JSResponse.JSResponseBody.JSResponseBodyData) {
-                        // 직렬화는 이 예제에서 필요 없으므로 구현하지 않음
+                        // 직렬화는 필요 없으므로 구현하지 않음
                     }
                 }
             } else {

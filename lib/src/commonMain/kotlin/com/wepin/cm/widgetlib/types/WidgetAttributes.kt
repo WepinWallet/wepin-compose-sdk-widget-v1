@@ -6,5 +6,6 @@ import kotlinx.serialization.Serializable
 data class WidgetAttributes(
     val type: String = "",
     val defaultLanguage: String = "",
-    val defaultCurrency: String = ""
+    val defaultCurrency: String = "",
+    var loginProviders: Array<String>? = null
 )

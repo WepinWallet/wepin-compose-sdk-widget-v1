@@ -57,6 +57,7 @@ class WepinError : Exception {
         val ACCOUNT_NOT_FOUND = WepinError.generalEx(ErrorCode.ACCOUNT_NOT_FOUND)
         val FAILED_REGISTER = WepinError.generalEx(ErrorCode.FAILED_REGISTER)
         val FAILED_SEND = WepinError.generalEx(ErrorCode.FAILED_SEND)
+        val FAILED_RECEIVE = WepinError.generalEx(ErrorCode.FAILED_RECEIVE)
         val NFT_NOT_FOUND = WepinError.generalEx(ErrorCode.NFT_NOT_FOUND)
 
         private fun generalEx(errorDescription: ErrorCode): WepinError {

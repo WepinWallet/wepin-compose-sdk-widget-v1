@@ -4,7 +4,6 @@ import com.wepin.cm.loginlib.WepinLogin
 import com.wepin.cm.loginlib.storage.StorageManager
 import com.wepin.cm.loginlib.types.StorageDataType
 import com.wepin.cm.loginlib.types.WepinLoginOptions
-import com.wepin.cm.widgetlib.const.WidgetUrl
 import com.wepin.cm.widgetlib.error.WepinError
 import com.wepin.cm.widgetlib.storage.AppData
 import com.wepin.cm.widgetlib.types.Account
@@ -22,15 +21,20 @@ import com.wepin.cm.widgetlib.types.GetAccountListRequest
 import com.wepin.cm.widgetlib.types.GetNFTRequest
 import com.wepin.cm.widgetlib.types.GetNFTResponse
 import com.wepin.cm.widgetlib.types.ITermsAccepted
+import com.wepin.cm.widgetlib.types.JSPinAuthRequestParameter
+import com.wepin.cm.widgetlib.types.JSReceiveRequestParameter
 import com.wepin.cm.widgetlib.types.JSRegisterRequestParameter
 import com.wepin.cm.widgetlib.types.JSResponse
 import com.wepin.cm.widgetlib.types.JSSendRequestParameter
+import com.wepin.cm.widgetlib.types.LoginWithUIParameter
 import com.wepin.cm.widgetlib.types.NFTContract
+import com.wepin.cm.widgetlib.types.ReceiveResponse
 import com.wepin.cm.widgetlib.types.RegisterRequest
 import com.wepin.cm.widgetlib.types.SendData
 import com.wepin.cm.widgetlib.types.SendResponse
 import com.wepin.cm.widgetlib.types.TokenBalanceInfo
 import com.wepin.cm.widgetlib.types.UpdateTermsAcceptedRequest
+import com.wepin.cm.widgetlib.types.VerifyPinRequest
 import com.wepin.cm.widgetlib.types.WepinNFT
 import com.wepin.cm.widgetlib.types.WepinNFTContract
 import com.wepin.cm.widgetlib.types.WidgetAttributes
@@ -578,12 +582,149 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
         }
     }
 
+    suspend fun receive(account: Account): ReceiveResponse {
+        if (!isInitalized()) {
+            throw WepinError.NOT_INITIALIZED_ERROR
+        }
+        if (getStatus() != WepinLifeCycle.LOGIN_BEFORE_REGISTER && _userInfo == null) {
+            throw WepinError.generateExWithMessage(
+                ErrorCode.INCORRECT_LIFECYCLE_EXCEPTION,
+                "The LifeCycle of wepin SDK has to be login"
+            )
+        }
+
+        getAccounts()
+
+        if (_detailAccounts == null || _detailAccounts!!.isEmpty()) {
+            throw WepinError.ACCOUNT_NOT_FOUND
+        }
+
+        val filteredAccounts = _detailAccounts!!.filter { dAccount ->
+            account.network == dAccount.network &&
+                    account.address == dAccount.address &&
+                    dAccount.contract == null }
+
+        if (filteredAccounts.isEmpty()) {
+            throw WepinError.ACCOUNT_NOT_FOUND
+        }
+
+        val deferred = CompletableDeferred<String>()
+        WebViewResponseManager.receiveDeferred = deferred
+        SDKRequest.setRequest(
+            command = "receive_account",
+            parameter = JSReceiveRequestParameter(
+                account = account,
+            )
+        )
+        _open()
+        try {
+            val response = deferred.await()
+            if (response == "SUCCESS" || response == "User Cancel") {
+                return ReceiveResponse(account = account)
+            }
+            else
+                throw WepinError.FAILED_RECEIVE
+        } catch (e: Exception) {
+            throw WepinError.generateExWithMessage(ErrorCode.FAILED_RECEIVE, e.toString())
+        }
+    }
+
+
+    suspend fun verifyPin(count: Int = 1): Boolean {
+        if (!_isInitialized) {
+            throw WepinError.NOT_INITIALIZED_ERROR
+        }
+        if (getStatus() != WepinLifeCycle.LOGIN && _userInfo == null) {
+            throw WepinError(
+                WepinError.INCORRECT_LIFECYCLE_EXCEPTION.getErrorCode(),
+                "The LifeCycle of wepin SDK has to be login"
+            )
+        }
+
+        val accessToken = _userInfo!!.token!!.accessToken
+
+        //val deferred = CompletableDeferred<JSResponse.JSResponseBody.JSPinAuthResponseBodyData>()
+        //WebViewResponseManager.pinDeferred = deferred
+        val deferred = CompletableDeferred<Any>()
+        WebViewResponseManager.pinDeferred = deferred
+        SDKRequest.setRequest(
+            command = "pin_auth",
+            parameter = JSPinAuthRequestParameter(
+                count = count,
+            )
+        )
+        _open()
+        try {
+            val response = deferred.await()
+            // Handle response types using when
+            when (response) {
+                is JSResponse.JSResponseBody.JSStringResponse -> {
+                    if (response.data == "User Cancel") {
+                        return false
+                    } else {
+                        throw WepinError.generateExWithMessage(
+                            ErrorCode.UNKNOWN_ERROR,
+                            "Unexpected response: ${response.data}"
+                        )
+                    }
+                }
+                is JSResponse.JSResponseBody.JSPinAuthResponseBodyData -> {
+                    val parameter = VerifyPinRequest(
+                        userId = _userInfo!!.userInfo!!.userId,
+                        walletId = _userInfo!!.walletId!!,
+                        UVD = response.UVDs[0]
+                    )
+                    val result = _wepinNetworkManager!!.verifyPin(accessToken, parameter)
+                    return result
+                }
+                else -> {
+                    throw WepinError.generateExWithMessage(
+                        ErrorCode.UNKNOWN_ERROR,
+                        "Unexpected response type: ${response::class}"
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
     private fun _normalizeAmount(amount: String): String {
         val regex = Regex("""^\d+(\.\d+)?$""")
         if (regex.matches(amount)) {
             return amount
         } else {
             throw WepinError.INVALID_PARAMETER
+        }
+    }
+
+    suspend fun loginWithUI(parameter: LoginWithUIParameter): WepinUser? {
+        if (!_isInitialized) {
+            throw WepinError.NOT_INITIALIZED_ERROR
+        }
+
+        val status = getStatus()
+        if ((status === WepinLifeCycle.LOGIN || status === WepinLifeCycle.LOGIN_BEFORE_REGISTER) && _userInfo != null) {
+            return _userInfo
+        } else {
+            AppData.setLoginProviders(parameter.loginProviders)
+            AppData.setSpecifiedEmail(parameter.email ?: "")
+
+            val deferred = CompletableDeferred<Boolean>()
+            WebViewResponseManager.loginDeferred = deferred
+            _open()
+
+            try {
+                val response = deferred.await()
+                closeWidget()
+                if (response) {
+                    return _userInfo
+                }
+                else
+                    throw com.wepin.cm.loginlib.error.WepinError.FAILED_LOGIN
+            } catch (e: Exception) {
+                throw WepinError.generateExWithMessage(ErrorCode.FAILED_RECEIVE, e.toString())
+            }
         }
     }
 }

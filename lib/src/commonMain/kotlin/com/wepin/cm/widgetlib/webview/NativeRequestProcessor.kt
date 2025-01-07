@@ -1,9 +1,11 @@
 package com.wepin.cm.widgetlib.webview
 
 import com.wepin.cm.loginlib.storage.StorageManager
+import com.wepin.cm.loginlib.types.LoginOauth2Params
 import com.wepin.cm.widgetlib.WepinWidgetSDK
 import com.wepin.cm.widgetlib.storage.AppData
 import com.wepin.cm.widgetlib.types.Command
+import com.wepin.cm.widgetlib.types.JSGetLoginInfoRequestParameter
 import com.wepin.cm.widgetlib.types.JSRequest
 import com.wepin.cm.widgetlib.utils.getDomain
 import com.wepin.cm.widgetlib.utils.getPlatform
@@ -52,13 +54,14 @@ class NativeRequestProcessor {
         if (parameter is Map<*, *>) {
             val dataMap = parameter as? Map<String, Any>
             if (dataMap != null) {
-                val data = dataMap["data"]
-                if (data is Map<*, *>) {
-                    StorageManager.setAllStorage(data as Map<String, Any>)
-                    CoroutineScope(Dispatchers.IO).launch {
-                        WepinWidgetSDK.getInstance()._checkLoginStatusAndSetLifecycle()
+                    StorageManager.setAllStorage(dataMap)
+                    if (dataMap.containsKey("user_info")) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            WepinWidgetSDK.getInstance().getStatus()
+                            WebViewResponseManager.loginDeferred?.complete(true)
+                        }
                     }
-                }
+//                }
             } else {
                 println("Failed to cast parameter to Map<String, Any>")
             }
@@ -83,7 +86,16 @@ class NativeRequestProcessor {
         return jsResponse
     }
     private fun setUserEmail(request: JSRequest): JSResponse? {
-        return null
+        var jsResponse: JSResponse? = null
+
+        try {
+            val builder: JSResponse.Builder = JSResponse.Builder(request.header.request_to, request.body.command, "SUCCESS", request.header.id)
+            builder.setEmail()
+            jsResponse = builder.build()
+        } catch(e: Exception) {
+            println("$e")
+        }
+        return jsResponse
     }
     private fun getSdkRequest(request: JSRequest): JSResponse? {
         var jsResponse: JSResponse? = null
@@ -108,25 +120,56 @@ class NativeRequestProcessor {
         return null
     }
 
-    private fun closeWepinWidget(request: JSRequest): JSResponse {
+
+    suspend fun getLoginInfo(request: JSRequest):JSResponse? {
+        val providerName = (request.body.parameter as JSGetLoginInfoRequestParameter).provider
+        val providerInfo = AppData.getProviderList(providerName)
+        val params = LoginOauth2Params(
+            provider = providerInfo?.provider ?: "",
+            clientId = providerInfo?.clientId ?: ""
+        )
+
+        val builder: JSResponse.Builder = JSResponse.Builder(request.header.request_to, request.body.command, "SUCCESS", request.header.id)
+        return _loginFirebase(params, builder)
+    }
+
+    private suspend fun _loginFirebase(params: LoginOauth2Params, builder: JSResponse.Builder): JSResponse {
+        try {
+            val res = WepinWidgetSDK.getInstance().login?.loginFirebaseWithOauthProvider(params)
+            if (res != null) {
+                builder.setLoginResult(res)
+            } else {
+                builder.setStringResponse("failed login")
+            }
+
+        } catch (e: Exception) {
+            builder.setStringResponse("failed login")
+        }
+        return builder.build()
+    }
+
+
+
+    private fun closeWepinWidget(request: JSRequest): JSResponse? {
         val webViewManager: WebViewManager = WebViewManager.getInstance()
 
         webViewManager.closeWidget()
 
-        var jsResponse: JSResponse? = null
-        try {
-            val builder: JSResponse.Builder = JSResponse.Builder(
-                request.header.request_to,
-                request.body.command,
-                "SUCCESS",
-                request.header.id
-            )
-
-            jsResponse = builder.build()
-        } catch(e: Exception) {
-            println("$e")
-            throw e
-        }
-        return jsResponse
+//        var jsResponse: JSResponse? = null
+//        try {
+//            val builder: JSResponse.Builder = JSResponse.Builder(
+//                request.header.request_to,
+//                request.body.command,
+//                "SUCCESS",
+//                request.header.id
+//            )
+//
+//            jsResponse = builder.build()
+//        } catch(e: Exception) {
+//            println("$e")
+//            throw e
+//        }
+//        return jsResponse
+        return null
     }
 }
