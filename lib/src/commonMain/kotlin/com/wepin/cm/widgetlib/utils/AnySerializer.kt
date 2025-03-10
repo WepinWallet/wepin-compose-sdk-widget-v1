@@ -1,17 +1,13 @@
 package com.wepin.cm.widgetlib.utils
 
-import com.wepin.cm.loginlib.storage.StorageManager
 import com.wepin.cm.loginlib.types.StorageDataType
 import com.wepin.cm.widgetlib.types.JSRegisterRequestParameter
 import com.wepin.cm.loginlib.types.WepinLoginStatus
-import com.wepin.cm.loginlib.utils.convertJsonToLocalStorageData
 import com.wepin.cm.widgetlib.types.Account
 import com.wepin.cm.widgetlib.types.JSGetLoginInfoRequestParameter
 import com.wepin.cm.widgetlib.types.JSPinAuthRequestParameter
 import com.wepin.cm.widgetlib.types.JSReceiveRequestParameter
-import com.wepin.cm.widgetlib.types.JSResponse
 import com.wepin.cm.widgetlib.types.JSSendRequestParameter
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor

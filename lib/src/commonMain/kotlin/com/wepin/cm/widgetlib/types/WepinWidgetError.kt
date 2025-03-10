@@ -90,8 +90,14 @@ object WepinWidgetError {
             ErrorCode.FAILED_RECEIVE -> {
                 "Failed Receive"
             }
+            ErrorCode.FAILED_ACCOUNT_DETAIL -> {
+                "Failed View Account Detail"
+            }
             ErrorCode.NFT_NOT_FOUND -> {
                 "NFT not Found"
+            }
+            ErrorCode.FAILED_PIN_VERIFIED -> {
+                "Failed to verify Pin"
             }
         }
     }
@@ -119,11 +125,13 @@ enum class ErrorCode {
     NOT_INITIALIZED_NETWORK,
     REQUIRED_SIGNUP_EMAIL,
     FAILED_EMAIL_VERIFIED,
+    FAILED_PIN_VERIFIED,
     FAILED_PASSWORD_SETTING,
     EXISTED_EMAIL,
     FAILED_REGISTER,
     FAILED_SEND,
     FAILED_RECEIVE,
+    FAILED_ACCOUNT_DETAIL,
     INCORRECT_LIFECYCLE_EXCEPTION,
     ACCOUNT_NOT_FOUND,
     NFT_NOT_FOUND

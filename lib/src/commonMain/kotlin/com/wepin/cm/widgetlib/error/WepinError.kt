@@ -58,6 +58,8 @@ class WepinError : Exception {
         val FAILED_REGISTER = WepinError.generalEx(ErrorCode.FAILED_REGISTER)
         val FAILED_SEND = WepinError.generalEx(ErrorCode.FAILED_SEND)
         val FAILED_RECEIVE = WepinError.generalEx(ErrorCode.FAILED_RECEIVE)
+        val FAILED_ACCOUNT_DETAIL = WepinError.generalEx(ErrorCode.FAILED_ACCOUNT_DETAIL)
+        val FAILED_PIN_VERIFIED = WepinError.generalEx(ErrorCode.FAILED_PIN_VERIFIED)
         val NFT_NOT_FOUND = WepinError.generalEx(ErrorCode.NFT_NOT_FOUND)
 
         private fun generalEx(errorDescription: ErrorCode): WepinError {
@@ -69,7 +71,7 @@ class WepinError : Exception {
         }
 
         fun generateExWithMessage(errorCode: ErrorCode, message: String?): WepinError {
-            return WepinError("${WepinWidgetError.getError(errorCode)} + $message")
+            return WepinError("${WepinWidgetError.getError(errorCode)} - $message")
         }
     }
 }

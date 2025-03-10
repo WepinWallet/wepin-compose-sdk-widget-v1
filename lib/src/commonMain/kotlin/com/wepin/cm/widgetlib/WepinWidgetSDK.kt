@@ -1,7 +1,7 @@
 package com.wepin.cm.widgetlib
 
 import com.wepin.cm.loginlib.WepinLogin
-import com.wepin.cm.loginlib.storage.StorageManager
+import com.wepin.cm.loginlib.storage.WepinStorageManager
 import com.wepin.cm.loginlib.types.StorageDataType
 import com.wepin.cm.loginlib.types.WepinLoginOptions
 import com.wepin.cm.widgetlib.error.WepinError
@@ -13,6 +13,7 @@ import com.wepin.cm.loginlib.types.WepinLoginStatus
 import com.wepin.cm.loginlib.types.WepinUser
 import com.wepin.cm.widgetlib.info.LocaleManager
 import com.wepin.cm.widgetlib.network.WepinNetworkManager
+import com.wepin.cm.widgetlib.types.AccountDetailResponse
 import com.wepin.cm.widgetlib.types.AppNFT
 import com.wepin.cm.widgetlib.types.DetailAccount
 import com.wepin.cm.widgetlib.types.ErrorCode
@@ -39,6 +40,7 @@ import com.wepin.cm.widgetlib.types.WepinNFT
 import com.wepin.cm.widgetlib.types.WepinNFTContract
 import com.wepin.cm.widgetlib.types.WidgetAttributes
 import com.wepin.cm.widgetlib.utils.BigInteger
+import com.wepin.cm.widgetlib.webview.PinAuthResponse
 import com.wepin.cm.widgetlib.webview.SDKRequest
 import com.wepin.cm.widgetlib.webview.WebViewManager
 import com.wepin.cm.widgetlib.webview.WebViewResponseManager
@@ -230,7 +232,7 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
         return wepinLifeCycle!!
     }
 
-    suspend fun getBalance(accounts: ArrayList<Account>): ArrayList<AccountBalanceInfo>? {
+    suspend fun getBalance(accounts: ArrayList<Account>): ArrayList<AccountBalanceInfo> {
         if (!_isInitialized) {
             throw WepinError.NOT_INITIALIZED_ERROR
         }
@@ -328,7 +330,6 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
 
         val balanceValue = BigInteger(balance)
         val divisor = BigInteger("10").pow(decimals)
-
         val wholePart = balanceValue / divisor
         val fractionalPart = balanceValue % divisor
 
@@ -493,7 +494,7 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
                 )
             )
             // 로컬 저장소 업데이트
-            StorageManager.setStorage("user_status",
+            WepinStorageManager.setStorage("user_status",
                 StorageDataType.UserStatus(loginStatus = "complete", pinRequired = true)
             )
 
@@ -514,10 +515,15 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
 
             try {
                 deferred.await()
+
+                return _userInfo!!
             } catch (e: Exception) {
+                if (e is WepinError) throw e
                 throw WepinError.generateExWithMessage(ErrorCode.FAILED_REGISTER, e.toString())
+            } finally {
+                closeWidget()
+                WebViewResponseManager.registerDeferred = null
             }
-            return _userInfo!!
         }
     }
 
@@ -578,7 +584,11 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
             val response = deferred.await()
             return SendResponse(txId = response)
         } catch (e: Exception) {
+            if (e is WepinError) throw e
             throw WepinError.generateExWithMessage(ErrorCode.FAILED_SEND, e.toString())
+        } finally {
+            closeWidget()
+            WebViewResponseManager.sendDeferred = null
         }
     }
 
@@ -625,7 +635,11 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
             else
                 throw WepinError.FAILED_RECEIVE
         } catch (e: Exception) {
+            if (e is WepinError) throw e
             throw WepinError.generateExWithMessage(ErrorCode.FAILED_RECEIVE, e.toString())
+        } finally {
+            closeWidget()
+            WebViewResponseManager.receiveDeferred = null
         }
     }
 
@@ -645,7 +659,7 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
 
         //val deferred = CompletableDeferred<JSResponse.JSResponseBody.JSPinAuthResponseBodyData>()
         //WebViewResponseManager.pinDeferred = deferred
-        val deferred = CompletableDeferred<Any>()
+        val deferred = CompletableDeferred<PinAuthResponse>()
         WebViewResponseManager.pinDeferred = deferred
         SDKRequest.setRequest(
             command = "pin_auth",
@@ -658,34 +672,82 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
             val response = deferred.await()
             // Handle response types using when
             when (response) {
-                is JSResponse.JSResponseBody.JSStringResponse -> {
-                    if (response.data == "User Cancel") {
-                        return false
-                    } else {
-                        throw WepinError.generateExWithMessage(
-                            ErrorCode.UNKNOWN_ERROR,
-                            "Unexpected response: ${response.data}"
-                        )
-                    }
+                is PinAuthResponse.StringValue -> {
+                    return false
                 }
-                is JSResponse.JSResponseBody.JSPinAuthResponseBodyData -> {
+                is PinAuthResponse.Data -> {
                     val parameter = VerifyPinRequest(
                         userId = _userInfo!!.userInfo!!.userId,
                         walletId = _userInfo!!.walletId!!,
-                        UVD = response.UVDs[0]
+                        UVD = response.value.UVDs[0]
                     )
                     val result = _wepinNetworkManager!!.verifyPin(accessToken, parameter)
                     return result
                 }
                 else -> {
                     throw WepinError.generateExWithMessage(
-                        ErrorCode.UNKNOWN_ERROR,
+                        ErrorCode.FAILED_PIN_VERIFIED,
                         "Unexpected response type: ${response::class}"
                     )
                 }
             }
         } catch (e: Exception) {
-            throw e
+            if (e is WepinError) throw e
+            throw WepinError.generalUnKnownEx(e.toString())
+        } finally {
+            closeWidget()
+            WebViewResponseManager.pinDeferred = null
+        }
+    }
+
+    suspend fun viewAccountDetail(account: Account): AccountDetailResponse {
+        if (!isInitalized()) {
+            throw WepinError.NOT_INITIALIZED_ERROR
+        }
+        if (getStatus() != WepinLifeCycle.LOGIN_BEFORE_REGISTER && _userInfo == null) {
+            throw WepinError.generateExWithMessage(
+                ErrorCode.INCORRECT_LIFECYCLE_EXCEPTION,
+                "The LifeCycle of wepin SDK has to be login"
+            )
+        }
+
+        getAccounts()
+
+        if (_detailAccounts == null || _detailAccounts!!.isEmpty()) {
+            throw WepinError.ACCOUNT_NOT_FOUND
+        }
+
+        val filteredAccounts = _detailAccounts!!.filter { dAccount ->
+            account.network == dAccount.network &&
+                    account.address == dAccount.address &&
+                    dAccount.contract == null }
+
+        if (filteredAccounts.isEmpty()) {
+            throw WepinError.ACCOUNT_NOT_FOUND
+        }
+
+        val deferred = CompletableDeferred<String>()
+        WebViewResponseManager.viewAccountDetailDeferred = deferred
+        SDKRequest.setRequest(
+            command = "show_account_detail",
+            parameter = JSReceiveRequestParameter(
+                account = account,
+            )
+        )
+        _open()
+        try {
+            val response = deferred.await()
+            if (response == "SUCCESS" || response == "User Cancel") {
+                return AccountDetailResponse(account = account)
+            }
+            else
+                throw WepinError.FAILED_ACCOUNT_DETAIL
+        } catch (e: Exception) {
+            if (e is WepinError) throw e
+            throw WepinError.generateExWithMessage(ErrorCode.FAILED_ACCOUNT_DETAIL, e.toString())
+        } finally {
+            closeWidget()
+            WebViewResponseManager.viewAccountDetailDeferred = null
         }
     }
 
@@ -723,7 +785,11 @@ class WepinWidgetSDK(wepinOptions: WepinLoginOptions) {
                 else
                     throw com.wepin.cm.loginlib.error.WepinError.FAILED_LOGIN
             } catch (e: Exception) {
-                throw WepinError.generateExWithMessage(ErrorCode.FAILED_RECEIVE, e.toString())
+                if (e is WepinError) throw e
+                throw WepinError.generateExWithMessage(ErrorCode.FAILED_LOGIN, e.toString())
+            } finally {
+                closeWidget()
+                WebViewResponseManager.loginDeferred = null
             }
         }
     }

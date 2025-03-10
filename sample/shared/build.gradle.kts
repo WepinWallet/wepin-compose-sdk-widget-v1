@@ -2,6 +2,7 @@ plugins {
     kotlin("multiplatform")
     id("com.android.library")
     id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
     kotlin("native.cocoapods")
 }
 
@@ -36,8 +37,9 @@ kotlin {
         pod("JFBCrypt") {
             version = "~> 0.1"
         }
-    }
 
+        podfile = project.file("../iosApp/Podfile")
+    }
 
     sourceSets {
         val commonMain by getting {
@@ -47,8 +49,7 @@ kotlin {
                 implementation(compose.material)
                 @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
                 implementation(compose.components.resources)
-                api("io.wepin:wepin-compose-sdk-widget-v1:0.0.3")
-                //api(project(":lib"))
+                api("io.wepin:wepin-compose-sdk-widget-v1:1.0.0")
             }
         }
         val androidMain by getting {

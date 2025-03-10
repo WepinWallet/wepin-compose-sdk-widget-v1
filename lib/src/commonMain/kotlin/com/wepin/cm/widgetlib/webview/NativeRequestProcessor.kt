@@ -1,6 +1,6 @@
 package com.wepin.cm.widgetlib.webview
 
-import com.wepin.cm.loginlib.storage.StorageManager
+import com.wepin.cm.loginlib.storage.WepinStorageManager
 import com.wepin.cm.loginlib.types.LoginOauth2Params
 import com.wepin.cm.widgetlib.WepinWidgetSDK
 import com.wepin.cm.widgetlib.storage.AppData
@@ -54,14 +54,13 @@ class NativeRequestProcessor {
         if (parameter is Map<*, *>) {
             val dataMap = parameter as? Map<String, Any>
             if (dataMap != null) {
-                    StorageManager.setAllStorage(dataMap)
-                    if (dataMap.containsKey("user_info")) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            WepinWidgetSDK.getInstance().getStatus()
-                            WebViewResponseManager.loginDeferred?.complete(true)
-                        }
+                WepinStorageManager.setAllStorage(dataMap)
+                if (dataMap.containsKey("user_info")) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        WepinWidgetSDK.getInstance().getStatus()
+                        WebViewResponseManager.loginDeferred?.complete(true)
                     }
-//                }
+                }
             } else {
                 println("Failed to cast parameter to Map<String, Any>")
             }
@@ -129,26 +128,27 @@ class NativeRequestProcessor {
             clientId = providerInfo?.clientId ?: ""
         )
 
-        val builder: JSResponse.Builder = JSResponse.Builder(request.header.request_to, request.body.command, "SUCCESS", request.header.id)
-        return _loginFirebase(params, builder)
+        return _loginFirebase(params, request)
     }
 
-    private suspend fun _loginFirebase(params: LoginOauth2Params, builder: JSResponse.Builder): JSResponse {
+    private suspend fun _loginFirebase(params: LoginOauth2Params, request: JSRequest): JSResponse {
         try {
+            val builder: JSResponse.Builder = JSResponse.Builder(request.header.request_to, request.body.command, "SUCCESS", request.header.id)
             val res = WepinWidgetSDK.getInstance().login?.loginFirebaseWithOauthProvider(params)
             if (res != null) {
                 builder.setLoginResult(res)
             } else {
                 builder.setStringResponse("failed login")
             }
+            return builder.build()
 
         } catch (e: Exception) {
-            builder.setStringResponse("failed login")
+            val errorBuilder = JSResponse.Builder(request.header.request_to, request.body.command, "ERROR", request.header.id)
+
+            errorBuilder.setErrorResponse("$e")
+            return errorBuilder.build()
         }
-        return builder.build()
     }
-
-
 
     private fun closeWepinWidget(request: JSRequest): JSResponse? {
         val webViewManager: WebViewManager = WebViewManager.getInstance()

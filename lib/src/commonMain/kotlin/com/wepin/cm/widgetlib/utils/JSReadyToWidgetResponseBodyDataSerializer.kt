@@ -21,7 +21,7 @@ object JSReadyToWidgetResponseBodyDataSerializer : KSerializer<JSResponse.JSResp
         element<WidgetAttributes>("attributes")
         element<String>("type")
         element<JsonObject>("localDate")
-        element<Int>("version")
+        element<String>("version")
     }
 
     override fun serialize(encoder: Encoder, value: JSResponse.JSResponseBody.JSReadyToWidgetResponseBodyData) {
@@ -58,7 +58,7 @@ object JSReadyToWidgetResponseBodyDataSerializer : KSerializer<JSResponse.JSResp
             }
 
             encodeSerializableElement(descriptor, 5, JsonObject.serializer(), JsonObject(localDateJson))
-            encodeIntElement(descriptor, 6, value.version)
+            encodeStringElement(descriptor, 6, value.version)
         }
     }
 
@@ -70,7 +70,7 @@ object JSReadyToWidgetResponseBodyDataSerializer : KSerializer<JSResponse.JSResp
             var attributes = WidgetAttributes()
             var type = ""
             var localDate = mapOf<String, Any>()
-            var version = 0
+            var version = "0"
 
             loop@ while (true) {
                 when (val index = decodeElementIndex(descriptor)) {
@@ -80,7 +80,7 @@ object JSReadyToWidgetResponseBodyDataSerializer : KSerializer<JSResponse.JSResp
                     3 -> attributes = decodeSerializableElement(descriptor, 3, WidgetAttributes.serializer())
                     4 -> type = decodeStringElement(descriptor, 4)
                     5 -> localDate = decodeSerializableElement(descriptor, 5, JsonObject.serializer()).map { it.key to it.value.toString() }.toMap()
-                    6 -> version = decodeIntElement(descriptor, 6)
+                    6 -> version = decodeStringElement(descriptor, 6)
                     else -> break@loop
                 }
             }

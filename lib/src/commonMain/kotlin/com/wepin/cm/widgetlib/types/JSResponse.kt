@@ -3,12 +3,12 @@
 package com.wepin.cm.widgetlib.types
 
 import JSReadyToWidgetResponseBodyDataSerializer
-import com.wepin.cm.loginlib.storage.StorageManager
+import com.wepin.cm.loginlib.storage.WepinStorageManager
 import com.wepin.cm.loginlib.types.FBToken
 import com.wepin.cm.loginlib.types.LoginResult
-import com.wepin.cm.widgetlib.const.Constants
 import com.wepin.cm.widgetlib.storage.AppData
 import com.wepin.cm.widgetlib.utils.SealedSerializer
+import com.wepin.cm.widgetlib.utils.getVersionMetaDataValue
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -41,7 +41,7 @@ data class JSResponse(
             var attributes: WidgetAttributes = WidgetAttributes(),
             var type: String = "",
             var localDate: Map<String, Any> = mapOf(),
-            var version: Int = 0
+            var version: String ="0"
         ) : JSResponseBodyData()
 
         @Serializable
@@ -71,6 +71,11 @@ data class JSResponse(
         ): JSResponseBodyData()
 
         @Serializable
+        data class JSErrorResponse(
+            var error: String? = null
+        ): JSResponseBodyData()
+
+        @Serializable
         data class JSPinAuthResponseBodyData(
             var UVDs: Array<UVD>,
             var otp: String? = null
@@ -79,7 +84,8 @@ data class JSResponse(
         @Serializable
         data class JSGetLoginInfoResponseBodyData(
             var provider: String? = null,
-            var token: FBToken? = null
+            var token: FBToken? = null,
+            val data: String? = null
         ): JSResponseBodyData()
     }
 
@@ -87,17 +93,22 @@ data class JSResponse(
         private val response: JSResponse
 
         init {
-            val data: JSResponseBody.JSResponseBodyData? = when (command) {
-                Command.CMD_READY_TO_WIDGET -> JSResponseBody.JSReadyToWidgetResponseBodyData()
-                Command.CMD_GET_SDK_REQUEST -> JSResponseBody.JSGetSdkRequestResponseBodyData()
-                Command.CMD_SET_USER_EMAIL -> JSResponseBody.JSSetUserEmailResponseBodyData()
-                Command.CMD_GET_LOGIN_INFO -> JSResponseBody.JSGetLoginInfoResponseBodyData()
-                else -> null
+            var data: JSResponseBody.JSResponseBodyData? = null
+            if (state == "ERROR") {
+                data = JSResponseBody.JSErrorResponse()
+            } else {
+                data = when (command) {
+                    Command.CMD_READY_TO_WIDGET -> JSResponseBody.JSReadyToWidgetResponseBodyData()
+                    Command.CMD_GET_SDK_REQUEST -> JSResponseBody.JSGetSdkRequestResponseBodyData()
+                    Command.CMD_SET_USER_EMAIL -> JSResponseBody.JSSetUserEmailResponseBodyData()
+                    Command.CMD_GET_LOGIN_INFO -> JSResponseBody.JSGetLoginInfoResponseBodyData()
+                    else -> null
+                }
             }
             val header = JSResponseHeader(id = id, response_from = target, response_to = "wepin-widget")
             response = JSResponse(
                 header = header,
-                body = JSResponseBody(command, state, data)
+                body = JSResponseBody(command, "SUCCESS", data)
             )
         }
 
@@ -118,7 +129,8 @@ data class JSResponse(
         }
 
         fun setVersion() = apply {
-            (response.body.data as? JSResponseBody.JSReadyToWidgetResponseBodyData)?.version = Constants.WIDGET_INTERFACE_VERSION
+//            (response.body.data as? JSResponseBody.JSReadyToWidgetResponseBodyData)?.version = Constants.WIDGET_INTERFACE_VERSION
+            (response.body.data as? JSResponseBody.JSReadyToWidgetResponseBodyData)?.version = getVersionMetaDataValue()
         }
 
         fun setType() = apply {
@@ -143,7 +155,7 @@ data class JSResponse(
 
         fun setLocalData() = apply {
             (response.body.data as? JSResponseBody.JSReadyToWidgetResponseBodyData)?.localDate =
-                StorageManager.getAllStorage() as Map<String, Any>
+                (WepinStorageManager.getAllStorage() ?: mapOf<String, Any>()) as Map<String, Any>
         }
 
         fun setLoginResult(loginResult: LoginResult) = apply {
@@ -153,6 +165,11 @@ data class JSResponse(
 
         fun setStringResponse(result: String) = apply {
             (response.body.data as? JSResponseBody.JSStringResponse)?.data = result
+        }
+
+        fun setErrorResponse(error: String) = apply {
+            println("error: $error")
+            (response.body.data as? JSResponseBody.JSErrorResponse)?.error = error
         }
 
         fun build(): JSResponse = response

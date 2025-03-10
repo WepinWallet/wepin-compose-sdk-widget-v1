@@ -19,12 +19,13 @@ object SealedSerializer: JsonContentPolymorphicSerializer<JSResponse.JSResponseB
             val jsonObject = element.jsonObject
             return when {
                 jsonObject.containsKey("appKey") -> JSResponse.JSResponseBody.JSReadyToWidgetResponseBodyData.serializer()
-                jsonObject.containsKey("provider") && jsonObject.containsKey("token") -> JSResponse.JSResponseBody.JSGetLoginInfoResponseBodyData.serializer()
+                jsonObject.containsKey("provider") && jsonObject.containsKey("token") && !jsonObject.containsKey("data") -> JSResponse.JSResponseBody.JSGetLoginInfoResponseBodyData.serializer()
                 jsonObject.containsKey("token") -> JSResponse.JSResponseBody.JSGoogleLogInResponseBodyData.serializer()
                 jsonObject.containsKey("header") -> JSResponse.JSResponseBody.JSGetSdkRequestResponseBodyData.serializer()
                 jsonObject.containsKey("email") -> JSResponse.JSResponseBody.JSSetUserEmailResponseBodyData.serializer()
                 jsonObject.containsKey("walletId") -> JSResponse.JSResponseBody.JSRegisterResponseBodyData.serializer()
                 jsonObject.containsKey("UVDs") -> JSResponse.JSResponseBody.JSPinAuthResponseBodyData.serializer()
+                jsonObject.containsKey("error") -> JSResponse.JSResponseBody.JSErrorResponse.serializer()
 
                 else -> {
                     throw IllegalArgumentException("Unsupported JSResponseBodyData type.")

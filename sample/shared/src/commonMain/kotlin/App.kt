@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
@@ -48,6 +50,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wepin.cm.loginlib.types.FBToken
@@ -60,7 +65,6 @@ import com.wepin.cm.loginlib.types.WepinLoginOptions
 import com.wepin.cm.loginlib.types.network.LoginOauthAccessTokenRequest
 import com.wepin.cm.loginlib.types.network.LoginOauthIdTokenRequest
 import com.wepin.cm.widgetlib.WepinWidgetSDK
-import com.wepin.cm.widgetlib.error.WepinError
 import com.wepin.cm.widgetlib.types.Account
 import com.wepin.cm.widgetlib.types.AccountBalanceInfo
 import com.wepin.cm.widgetlib.types.LoginProvider
@@ -73,6 +77,7 @@ import com.wepin.cm.widgetlib.types.WidgetAttributes
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import utils.Platform
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -80,39 +85,21 @@ import kotlin.math.sin
 class WidgetManager(context: Any) {
     var loginResult: LoginResult? by mutableStateOf(null)
     val _context = context
-    val privateKey = "f49a54f62a2705e4371ad751532cb852b1d4e2d4392293c000b403c1c48d5c62"
+    val privateKey = "private_key"
     //    val privateKey = "185e092fbe9ca2b713519936c359f51fc48cc487f5c134fc7e067f7410d085a7"
+    val appKey = if (Platform.isIOS()) {
+        "your_ios_app_key"
+    } else {
+        "your_android_app_key"
+    }
+
     val wepinWidgetSDK = WepinWidgetSDK(
         WepinLoginOptions(
             context = _context,
-            // 테스트완료 dev | domain : com.wepin.widget.sample
-            //appId = "071529f2f251f0ee3b437e0797e9dcfb",
-            //appKey = "ak_dev_FZN820fqyg3nWWCS1XUNJQcQHxe1EEAKesYZOTxrZyU" //android
-            //appKey = "ak_dev_O7vV0KwxOdfhQMFawi2OSEEnIpW3qIxIxFx0jC0kMGN" //ios
-
-            // 컴포즈 테스트중 stage| domain : com.wepin.widget.sample
-            //appId = "96CC230888FB9042FFAA50A8D964992D",
-            //appKey = "ak_test_fWiBdabkHDNkuGK8uGL2DCpGixq4Rb4n7BLGuJwoja0"// android
-            //appKey = "ak_test_KdJnTr7Bj7Fr2ELo2Xw06d4ckAHSpj8YBPfEcCZVysg"// iOS
-
-            // 컴포즈 테스트중 stage| domain : com.wepin.loginlibrary (android) | io.wepin.demo.login (ios)
-            appId = "a1852ca938e320ca17105ac818f2b1ae",
-            appKey = "ak_test_XpMjKcIPyMkUxMlmPa12ACBqGWY8WoY3HaixpJ3UNzv"// android
-            //appKey = "ak_test_UcnVLZkKcPd2LRxeo9C2Cy8aNsIva497kbWZ5QI4mEJ"// iOS
-
-//            appId = "3e124d660c2910ed14f3fe938e0b7df4",   //비정상 android
-//            appKey = "ak_dev_owOVnOMw6Lzc827lyasW6DzIHckIDqbLeAUg67vdDsJ"
-//            appId = "78c46907ead098c40f6ccb1b3721ad2f",
-//            appKey = "ak_test_TMuBegDRNRu4S7dsqbl2aMsAK0chC46q9LAAALSLAdr"
-//            appId = "6e98090de4260eef690850f5c50fc2e9",   //정상 android without login provider
-//            appKey = "ak_dev_jvQuIcAStKuqwTuRVlLU8FJgDpWgdp1qJCSOTOyLqex"
-//            appId = "3e6b832130759a17a34b30cb831223f6",
-//            appKey = "ak_dev_AEhkffM59145SGcLjXcz01cPpsCynUGj33h6GBvrnsW"  //android
-//            appKey = "ak_dev_aFs4parzvLpNypLBMJDpGvkqvP4WNqmfB4ItZrWCuk6"
+            appId = "your_app_id",
+            appKey = appKey
         )
     )
-    //ios app key: ak_dev_f7NGPDJ4s0vEIDawjf98qfAsnDaIvIrzcxGFx2bL1q7
-    //ios stage app key: ak_test_TMuBegDRNRu4S7dsqbl2aMsAK0chC46q9LAAALSLAdr
 
     private suspend fun signupWithEmail(
         email: String,
@@ -182,7 +169,6 @@ class WidgetManager(context: Any) {
                 }
             }
         } catch (e: Exception) {
-            println("loginOauthFail")
             setResponse(null)
             setText("fail - $e")
             println("fail - $e")
@@ -196,21 +182,12 @@ class WidgetManager(context: Any) {
         setText: (String) -> Unit,
     ) {
         try {
-            println("loginIdToken")
-            val sign = wepinWidgetSDK.login!!.getSignForLogin(
-                privateKey,
-                token,
-            )
-            println("sign: $sign")
-            val loginOption = LoginOauthIdTokenRequest(idToken = token, sign = sign)
+            val loginOption = LoginOauthIdTokenRequest(idToken = token)
             val loginResponse = wepinWidgetSDK.login!!.loginWithIdToken(loginOption)
-            println("loginResponse: $loginResponse")
             val response = wepinWidgetSDK.login!!.loginWepin(loginResponse)
-            println("response: $response")
             setResponse(loginResponse)
             setText("$response")
         } catch (e: Exception) {
-            println("fail - $e")
             setResponse(null)
             setText("fail - ${e.message}")
         }
@@ -230,7 +207,6 @@ class WidgetManager(context: Any) {
             setResponse(loginResponse)
             setText("$response")
         } catch (e: Exception) {
-            println("fail - $e")
             setResponse(null)
             setText("fail - ${e.message}")
         }
@@ -258,10 +234,9 @@ class WidgetManager(context: Any) {
         coroutineScope.launch {
             try {
                 val txId = wepinWidgetSDK.send(data)
-                println("txId: $txId")
-                setText("$txId")
+                setText("txId: $txId")
             } catch (e: Exception) {
-                setText("$e")
+                setText("error: $e")
             }
         }
     }
@@ -274,9 +249,24 @@ class WidgetManager(context: Any) {
         coroutineScope.launch {
             try {
                 val result = wepinWidgetSDK.receive(account)
-                setText("$result")
+                setText("result: $result")
             } catch (e: Exception) {
-                setText("$e")
+                setText("error: $e")
+            }
+        }
+    }
+
+    fun viewAccountDetail(
+        coroutineScope: CoroutineScope,
+        account: Account,
+        setText: (String) -> Unit
+    ) {
+        coroutineScope.launch {
+            try {
+                val result = wepinWidgetSDK.viewAccountDetail(account)
+                setText("result: $result")
+            } catch (e: Exception) {
+                setText("error: $e")
             }
         }
     }
@@ -298,7 +288,6 @@ class WidgetManager(context: Any) {
         setUserStatus: (WepinLifeCycle) -> Unit
     ) {
         setItem(item)
-        setText("Processing...")
         when (item) {
             "Init" -> {
                 val attributes =
@@ -317,7 +306,7 @@ class WidgetManager(context: Any) {
                             setLoading(false)
                         }
                     } catch(e: Exception) {
-                        println("e: $e")
+                        setText("error: $e")
                     }
                 }
             }
@@ -325,26 +314,21 @@ class WidgetManager(context: Any) {
                 coroutineScope.launch {
                     try {
                         val options = LoginWithUIParameter(
-                            email = "js.hong@iotrust.kr",
-//                            loginProviders = arrayOf(
-//                                LoginProvider(provider = "google", clientId = "850196342174-7r1sngs6ok0n8l46ua56p1vsi6bi5a46.apps.googleusercontent.com"),
-//                                LoginProvider(provider = "discord", clientId = "1306522198076293120"),
-//                                LoginProvider(provider = "naver", clientId = "ORxvrZrdjceVUEFxWLOr")
-//                            )
+                            email = "email@address",
                             loginProviders = arrayOf(
-                                LoginProvider(provider = "google", clientId = "1006602884997-ti7v6ldm1obtu209uousvfkh2e58klf6.apps.googleusercontent.com"),
-                                LoginProvider(provider = "discord", clientId = "1306522198076293120"),
-                                LoginProvider(provider = "naver", clientId = "ORxvrZrdjceVUEFxWLOr")
+                                LoginProvider(provider = "google", clientId = "google_client_id"),
+                                LoginProvider(provider = "naver", clientId = "naver_client_id"),
+                                LoginProvider(provider = "discord", clientId = "discord_client_id")
                             )
                         )
-                        wepinWidgetSDK.loginWithUI(options)
+                        val response = wepinWidgetSDK.loginWithUI(options)
 
                         val wepinStatus = wepinWidgetSDK.getStatus()
-                        println("login wepinStatus: $wepinStatus")
                         setUserStatus(wepinStatus)
+                        setText("response: $response")
 
                     } catch(e: Exception) {
-                        println("======error: $e")
+                        setText("error: $e")
                     }
                 }
             }
@@ -356,19 +340,15 @@ class WidgetManager(context: Any) {
                 coroutineScope.launch {
                     try {
                         setLoading(true)
-                        println("login with google")
                         loginOauth(
                             provider = "google",
-//                            clientId = "914682313325-c9kqcpmh0vflkqflsgh6cp35b4ife95q.apps.googleusercontent.com",
-                            //clientId = "850196342174-7r1sngs6ok0n8l46ua56p1vsi6bi5a46.apps.googleusercontent.com",
-                            clientId = "1006602884997-ti7v6ldm1obtu209uousvfkh2e58klf6.apps.googleusercontent.com",
+                            clientId = "google_client_id",
                             tokenType = OauthTokenType.ID_TOKEN,
                             setResponse = setResponse,
                             setText = setText,
                         )
 
                         val wepinStatus = wepinWidgetSDK.getStatus()
-                        println("login wepinStatus: $wepinStatus")
                         setUserStatus(wepinStatus)
                         setLoading(false)
                     } catch (e: Exception) {
@@ -383,7 +363,7 @@ class WidgetManager(context: Any) {
                     setLoading(true)
                     loginOauth(
                         provider = "apple",
-                        clientId = "io.wepin.testlocal",
+                        clientId = "apple_client_id",
                         tokenType = OauthTokenType.ID_TOKEN,
                         setResponse = setResponse,
                         setText = setText,
@@ -400,7 +380,7 @@ class WidgetManager(context: Any) {
                     setLoading(true)
                     loginOauth(
                         provider = "discord",
-                        clientId = "1311495043022061609",
+                        clientId = "discord_client_id",
                         tokenType = OauthTokenType.ACCESS_TOKEN,
                         setResponse = setResponse,
                         setText = setText,
@@ -417,7 +397,7 @@ class WidgetManager(context: Any) {
                     setLoading(true)
                     loginOauth(
                         provider = "naver",
-                        clientId = "cMHFoFq6Ep2FzDM0fnFP",
+                        clientId = "naver_client_id",
                         tokenType = OauthTokenType.ACCESS_TOKEN,
                         setResponse = setResponse,
                         setText = setText,
@@ -448,8 +428,10 @@ class WidgetManager(context: Any) {
                 coroutineScope.launch {
                     setLoading(true)
                     loginWithEmail(
-                        email = "js.hong@iotrust.kr",
-                        password = "doublebk13!@",
+//                        email = "js.hong@iotrust.kr",
+//                        password = "doublebk13!@@",
+                        email = "email",
+                        password = "password",
                         setResponse = setResponse,
                         setText = setText,
                     )
@@ -468,8 +450,12 @@ class WidgetManager(context: Any) {
 
             "Pin Auth" -> {
                 coroutineScope.launch {
-                    val result = wepinWidgetSDK.verifyPin()
-                    setText("result: $result")
+                    try {
+                        val result = wepinWidgetSDK.verifyPin()
+                        setText("result: $result")
+                    } catch(e: Exception) {
+                        setText("error: ${e.toString()}")
+                    }
                 }
             }
 
@@ -561,6 +547,12 @@ class WidgetManager(context: Any) {
                 }
             }
 
+            "View Account Detail" -> {
+                coroutineScope.launch {
+                    openDialog("View Account Detail")
+                }
+            }
+
             "Logout" -> {
                 coroutineScope.launch {
                     val response = wepinWidgetSDK.login!!.logoutWepin()
@@ -625,6 +617,8 @@ fun App(context: Any) {
     var text by remember { mutableStateOf("Your long text goes here...") }
     var userStatus by remember { mutableStateOf(WepinLifeCycle.NOT_INITIALIZED) }
     val coroutineScope = rememberCoroutineScope()
+    var showResultDialog by remember { mutableStateOf(false) } // ResultAlert 표시 여부
+    var resultText by remember { mutableStateOf("") } // ResultAlert의 텍스트
     var isLoading by remember { mutableStateOf(false) }
     MaterialTheme {
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -672,7 +666,11 @@ fun App(context: Any) {
                         coroutineScope = coroutineScope,
                         setResponse = { widgetManager.loginResult },
                         setItem = { item = it },
-                        setText = { text = it },
+                        setText = {
+                            text = it
+                            resultText = it // ResultAlert에 표시할 텍스트
+                            showResultDialog = true // ResultAlert 표시
+                        },
                         setLoading = { isLoading = it },
                         setAccountList = {
                             accountList = it
@@ -693,6 +691,14 @@ fun App(context: Any) {
                 userState = userStatus
             )
 //            ResultBox(item = item, text = text)
+        }
+
+        // ResultAlert 다이얼로그 표시
+        if (showResultDialog) {
+            ResultAlert(
+                text = resultText,
+                onConfirm = { showResultDialog = false } // 다이얼로그 닫기
+            )
         }
         if (showDialog) {
             when (dialogType) {
@@ -741,7 +747,10 @@ fun App(context: Any) {
                                 account = sendAccount!!,
                                 txData = TxData(toAddress = to, amount = amount)
                             ),
-                            setText = { text = it }
+                            setText = { text = it
+                                resultText = it // ResultAlert에 표시할 텍스트
+                                showResultDialog = true // ResultAlert 표시
+                            }
                         )
                     },
                     onDismiss = { showDialog = false })
@@ -767,7 +776,39 @@ fun App(context: Any) {
                         widgetManager.receive(
                             coroutineScope = coroutineScope,
                             account = receiveAccount!!,
-                            setText = { text = it }
+                            setText = { text = it
+                                resultText = it // ResultAlert에 표시할 텍스트
+                                showResultDialog = true // ResultAlert 표시
+                            }
+                        )
+                    },
+                    onDismiss = { showDialog = false })
+                "View Account Detail" -> DropdownDialog(
+                    title = "View Account Detail",
+                    items = accountList.map { account ->
+                        if (account.contract != null) {
+                            "${account.network} - ${account.contract}"  // contract가 null이 아니면 contract 값을 추가
+                        } else {
+                            account.network  // contract가 null이면 network만 사용
+                        }
+                    },
+                    onConfirm = { accountNetwork, to, amount ->
+                        val accountInfo = accountNetwork.split(" ")
+                        var receiveAccount: Account? = null
+                        if (accountInfo.size == 1) {
+                            receiveAccount =
+                                accountList.find { account -> account.network == accountInfo[0] && account.contract == null }
+                        } else {
+                            receiveAccount =
+                                accountList.find { account -> account.network == accountInfo[0] && account.contract == accountInfo[2] }
+                        }
+                        widgetManager.viewAccountDetail(
+                            coroutineScope = coroutineScope,
+                            account = receiveAccount!!,
+                            setText = { text = it
+                                resultText = it // ResultAlert에 표시할 텍스트
+                                showResultDialog = true // ResultAlert 표시
+                            }
                         )
                     },
                     onDismiss = { showDialog = false })
@@ -778,7 +819,10 @@ fun App(context: Any) {
                             defaultCurrency = currency,
                             defaultLanguage = language
                         ),
-                        setText = { text = it }
+                        setText = { text = it
+                            resultText = it // ResultAlert에 표시할 텍스트
+                            showResultDialog = true // ResultAlert 표시
+                        }
                     )
                 }, onDismiss = { showDialog = false })
             }
@@ -946,7 +990,8 @@ fun ScrollableContent(
                 "Account List View",
                 "Get Balance",
                 "Send",
-                "Receive"-> {
+                "Receive",
+                "View Account Detail" -> {
                     if (userState !== WepinLifeCycle.LOGIN || !accountExist) {
                         show = false
                     }
@@ -1105,8 +1150,17 @@ fun DropdownDialog(
     var textFieldValue1 by remember { mutableStateOf("") } // 첫 번째 텍스트 입력 상태
     var textFieldValue2 by remember { mutableStateOf("") } // 두 번째 텍스트 입력 상태
 
+    // 키보드 제어를 위한 컨트롤러
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            // 다이얼로그 닫을 때 키보드도 닫음
+            keyboardController?.hide()
+            focusManager.clearFocus()
+            onDismiss()
+        },
         title = {
             Text(text = title)
         },
@@ -1151,7 +1205,14 @@ fun DropdownDialog(
                         value = textFieldValue1,
                         onValueChange = { textFieldValue1 = it },
                         label = { Text("To") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            // 완료 버튼 클릭 시 키보드 닫기
+                            keyboardController?.show()
+//                            keyboardController?.hide()
+                            focusManager.clearFocus()
+                        })
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -1159,7 +1220,11 @@ fun DropdownDialog(
                         value = textFieldValue2,
                         onValueChange = { textFieldValue2 = it },
                         label = { Text("Amount") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            keyboardController?.hide()
+                        })
                     )
                 }
             }
@@ -1168,6 +1233,8 @@ fun DropdownDialog(
             Button(
                 onClick = {
                     // 확인 버튼 클릭 시 선택된 옵션과 입력된 텍스트 값 전달
+                    keyboardController?.hide() // 키보드 닫기
+                    focusManager.clearFocus()
                     onConfirm(selectedOption, textFieldValue1, textFieldValue2)
                     onDismiss()
                 }
@@ -1176,7 +1243,11 @@ fun DropdownDialog(
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
+            Button(onClick = {
+                keyboardController?.hide() // 키보드 닫기
+                focusManager.clearFocus()
+                onDismiss()
+            }) {
                 Text("Close")
             }
         }
@@ -1279,6 +1350,24 @@ fun AttributeDialog(
         },
         dismissButton = {
             Button(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+fun ResultAlert(text: String, onConfirm: () -> Unit) {
+    AlertDialog(
+        title = {
+            Text(text = "Result")
+        },
+        text = {
+            Text(text = text)
+        },
+        onDismissRequest = onConfirm,
+        confirmButton = {
+            Button(onClick = onConfirm) {
                 Text("Close")
             }
         }

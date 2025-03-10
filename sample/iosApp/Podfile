@@ -6,8 +6,8 @@ target 'iosApp' do
   use_frameworks!
 
   # Pods for iosApp
-#   pod 'shared', :path => '../shared'
-    pod 'lib', :path => '../../lib'
+  pod 'shared', :path => '../shared'
+#     pod 'lib', :path => '../../lib'
 end
 
 post_install do |installer|

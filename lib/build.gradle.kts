@@ -4,13 +4,14 @@ plugins {
     kotlin("multiplatform")
     id("com.android.library")
     id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.dokka")
     id("com.vanniktech.maven.publish")
     kotlin("native.cocoapods")
-    kotlin("plugin.serialization").version("1.9.23")
+    kotlin("plugin.serialization")
 }
 
-version = "0.0.1"
+version = "1.0.0"
 
 val buildConfigGenerator by tasks.registering(Sync::class) {
     from(
@@ -52,7 +53,7 @@ kotlin {
         summary = "Some description for a Kotlin/Native module"
         homepage = "Link to a Kotlin/Native module homepage"
         ios.deploymentTarget = "13.0"
-        version = "0.0.1"
+        version = "${project.version}"
 
         extraSpecAttributes["pod_target_xcconfig"] = """{
             'KOTLIN_PROJECT_PATH' => ':lib',
@@ -97,7 +98,7 @@ kotlin {
 //                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1-native-mt")
 
                 //wepin-login-library
-                api("io.wepin:wepin-compose-sdk-login-v1:0.0.10")
+                api("io.wepin:wepin-compose-sdk-login-v1:1.0.0")
             }
         }
         val androidMain by getting {

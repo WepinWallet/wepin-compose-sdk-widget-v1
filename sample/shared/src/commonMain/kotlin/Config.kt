@@ -18,6 +18,7 @@ fun getMenuList(): Array<String> {
         "Get Balance",
         "Send",
         "Receive",
+        "View Account Detail",
         "Logout",
         "Register",
         "Finalize"
